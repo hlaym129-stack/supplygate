@@ -1,5 +1,7 @@
 # Sub2API
 
+> **注意：** 本项目基于 [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api) 修改而来，遵循 LGPL v3 许可证。感谢原作者及所有贡献者的工作。
+
 <div align="center">
 
 [![Go](https://img.shields.io/badge/Go-1.25.7-00ADD8.svg)](https://golang.org/)

@@ -74,7 +74,9 @@ pnpm dev
 ## 联系
 
 - 📧 **邮箱** — hlaym129@gmail.com
-- 💬 **微信群** — 扫码加入（QR 码见下方），或邮件联系拉你进群
+- 💬 **微信群** — 扫码加入，或邮件联系拉你进群
+
+<img src="assets/wechat-group-qr.jpeg" alt="微信群二维码" width="200">
 
 ## 致谢
 

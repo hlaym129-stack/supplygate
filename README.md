@@ -71,6 +71,11 @@ pnpm dev
 
 提交 PR 前请阅读 [贡献者许可协议](CLA.md) 并签名。
 
+## 联系
+
+- 📧 **邮箱** — hlaym129@gmail.com
+- 💬 **微信群** — 扫码加入（QR 码见下方），或邮件联系拉你进群
+
 ## 致谢
 
 本项目基于 [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api)（LGPL v3），感谢原作者及所有贡献者。

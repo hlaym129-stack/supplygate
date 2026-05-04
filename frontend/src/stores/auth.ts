@@ -91,7 +91,15 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const isSupplier = computed(() => {
-    return user.value?.user_type === 'supplier' || user.value?.has_supplier_access === true
+    return user.value?.has_supplier_access === true || user.value?.supplier_status === 'approved'
+  })
+
+  const hasSupplierProfile = computed(() => {
+    return (
+      isSupplier.value ||
+      user.value?.user_type === 'supplier' ||
+      Boolean(user.value?.supplier_status)
+    )
   })
 
   const isSimpleMode = computed(() => runMode.value === 'simple')
@@ -499,6 +507,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     isSupplier,
+    hasSupplierProfile,
     isSimpleMode,
     hasPendingAuthSession,
 

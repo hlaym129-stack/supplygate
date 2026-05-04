@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
 )
@@ -437,6 +438,22 @@ func waitForInvalidations(t *testing.T, ch <-chan subscriptionInvalidateCall, ex
 	return calls
 }
 
+type adminAccountRepoStub struct {
+	accountRepoStub
+	account *Account
+	getErr  error
+}
+
+func (s *adminAccountRepoStub) GetByID(ctx context.Context, id int64) (*Account, error) {
+	if s.getErr != nil {
+		return nil, s.getErr
+	}
+	if s.account == nil {
+		return nil, ErrAccountNotFound
+	}
+	return s.account, nil
+}
+
 func TestAdminService_DeleteUser_Success(t *testing.T) {
 	repo := &userRepoStub{user: &User{ID: 7, Role: RoleUser}}
 	svc := &adminServiceImpl{userRepo: repo}
@@ -476,6 +493,52 @@ func TestAdminService_DeleteUser_DeleteError(t *testing.T) {
 	err := svc.DeleteUser(context.Background(), 9)
 	require.ErrorIs(t, err, deleteErr)
 	require.Equal(t, []int64{9}, repo.deletedIDs)
+}
+
+func TestAdminService_DeleteAccount_BlocksPendingSupplierApplication(t *testing.T) {
+	repo := &adminAccountRepoStub{
+		account: &Account{
+			ID:             55,
+			OwnerType:      AccountOwnerTypeSupplier,
+			ApprovalStatus: AccountApprovalStatusPending,
+		},
+	}
+	svc := &adminServiceImpl{accountRepo: repo}
+
+	err := svc.DeleteAccount(context.Background(), 55)
+	require.Error(t, err)
+	require.True(t, infraerrors.IsBadRequest(err))
+	require.Empty(t, repo.deletedIDs)
+}
+
+func TestAdminService_DeleteAccount_AllowsApprovedSupplierAccount(t *testing.T) {
+	repo := &adminAccountRepoStub{
+		account: &Account{
+			ID:             56,
+			OwnerType:      AccountOwnerTypeSupplier,
+			ApprovalStatus: AccountApprovalStatusApproved,
+		},
+	}
+	svc := &adminServiceImpl{accountRepo: repo}
+
+	err := svc.DeleteAccount(context.Background(), 56)
+	require.NoError(t, err)
+	require.Equal(t, []int64{56}, repo.deletedIDs)
+}
+
+func TestAdminService_DeleteAccount_AllowsPlatformAccount(t *testing.T) {
+	repo := &adminAccountRepoStub{
+		account: &Account{
+			ID:             57,
+			OwnerType:      AccountOwnerTypePlatform,
+			ApprovalStatus: AccountApprovalStatusApproved,
+		},
+	}
+	svc := &adminServiceImpl{accountRepo: repo}
+
+	err := svc.DeleteAccount(context.Background(), 57)
+	require.NoError(t, err)
+	require.Equal(t, []int64{57}, repo.deletedIDs)
 }
 
 func TestAdminService_DeleteGroup_Success_WithCacheInvalidation(t *testing.T) {

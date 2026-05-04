@@ -175,6 +175,16 @@ func mustCreateAccount(t *testing.T, client *dbent.Client, a *service.Account) *
 	if a.Status == "" {
 		a.Status = service.StatusActive
 	}
+	if a.OwnerType == "" {
+		a.OwnerType = service.AccountOwnerTypePlatform
+	}
+	if a.ApprovalStatus == "" {
+		if a.OwnerType == service.AccountOwnerTypeSupplier {
+			a.ApprovalStatus = service.AccountApprovalStatusPending
+		} else {
+			a.ApprovalStatus = service.AccountApprovalStatusApproved
+		}
+	}
 	if a.Concurrency == 0 {
 		a.Concurrency = 3
 	}
@@ -200,6 +210,8 @@ func mustCreateAccount(t *testing.T, client *dbent.Client, a *service.Account) *
 		SetConcurrency(a.Concurrency).
 		SetPriority(a.Priority).
 		SetStatus(a.Status).
+		SetOwnerType(a.OwnerType).
+		SetApprovalStatus(a.ApprovalStatus).
 		SetSchedulable(a.Schedulable).
 		SetErrorMessage(a.ErrorMessage)
 

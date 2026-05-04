@@ -139,7 +139,11 @@
 
             <!-- Whitelist Mode -->
             <div v-if="modelRestrictionMode === 'whitelist'">
-              <ModelWhitelistSelector v-model="allowedModels" :platform="account?.platform || 'anthropic'" />
+              <ModelWhitelistSelector
+                v-model="allowedModels"
+                :platform="account?.platform || 'anthropic'"
+                :additional-models="supplierSupportedModels"
+              />
               <p class="text-xs text-gray-500 dark:text-gray-400">
                 {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
                 <span v-if="allowedModels.length === 0">{{
@@ -454,7 +458,11 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" :platform="account?.platform || 'anthropic'" />
+            <ModelWhitelistSelector
+              v-model="allowedModels"
+              :platform="account?.platform || 'anthropic'"
+              :additional-models="supplierSupportedModels"
+            />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0">{{
@@ -666,7 +674,11 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" :platform="account?.platform || 'anthropic'" />
+            <ModelWhitelistSelector
+              v-model="allowedModels"
+              :platform="account?.platform || 'anthropic'"
+              :additional-models="supplierSupportedModels"
+            />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0">{{
@@ -888,7 +900,11 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" platform="anthropic" />
+            <ModelWhitelistSelector
+              v-model="allowedModels"
+              platform="anthropic"
+              :additional-models="supplierSupportedModels"
+            />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0">{{ t('admin.accounts.supportsAllModels') }}</span>
@@ -2214,6 +2230,7 @@ const modelMappings = ref<ModelMapping[]>([])
 const openAICompactModelMappings = ref<ModelMapping[]>([])
 const modelRestrictionMode = ref<'whitelist' | 'mapping'>('whitelist')
 const allowedModels = ref<string[]>([])
+const supplierSupportedModels = computed(() => normalizeModelList(props.account?.supported_models))
 const DEFAULT_POOL_MODE_RETRY_COUNT = 3
 const MAX_POOL_MODE_RETRY_COUNT = 10
 const poolModeEnabled = ref(false)
@@ -2425,6 +2442,36 @@ const expiresAtInput = computed({
 })
 
 // Watchers
+const normalizeModelList = (models?: string[] | null) => {
+  const normalized: string[] = []
+  const seen = new Set<string>()
+  for (const model of models || []) {
+    const trimmed = String(model).trim()
+    if (!trimmed || seen.has(trimmed)) continue
+    seen.add(trimmed)
+    normalized.push(trimmed)
+  }
+  return normalized
+}
+
+const defaultSupplierWhitelistModels = (account: Account) => {
+  if (account.owner_type !== 'supplier' || account.approval_status !== 'approved') {
+    return []
+  }
+  return normalizeModelList(account.supported_models)
+}
+
+const useDefaultSupplierWhitelist = (account: Account) => {
+  const models = defaultSupplierWhitelistModels(account)
+  if (models.length === 0) {
+    return false
+  }
+  modelRestrictionMode.value = 'whitelist'
+  allowedModels.value = models
+  modelMappings.value = []
+  return true
+}
+
 const normalizePoolModeRetryCount = (value: number) => {
   if (!Number.isFinite(value)) {
     return DEFAULT_POOL_MODE_RETRY_COUNT
@@ -2621,9 +2668,11 @@ const syncFormFromAccount = (newAccount: Account | null) => {
       }
     } else {
       // No mappings: default to whitelist mode with empty selection (allow all)
-      modelRestrictionMode.value = 'whitelist'
-      modelMappings.value = []
-      allowedModels.value = []
+      if (!useDefaultSupplierWhitelist(newAccount)) {
+        modelRestrictionMode.value = 'whitelist'
+        modelMappings.value = []
+        allowedModels.value = []
+      }
     }
 
     // Load pool mode
@@ -2682,9 +2731,11 @@ const syncFormFromAccount = (newAccount: Account | null) => {
         allowedModels.value = []
       }
     } else {
-      modelRestrictionMode.value = 'whitelist'
-      modelMappings.value = []
-      allowedModels.value = []
+      if (!useDefaultSupplierWhitelist(newAccount)) {
+        modelRestrictionMode.value = 'whitelist'
+        modelMappings.value = []
+        allowedModels.value = []
+      }
     }
   } else if (newAccount.type === 'upstream' && newAccount.credentials) {
     const credentials = newAccount.credentials as Record<string, unknown>
@@ -2710,9 +2761,11 @@ const syncFormFromAccount = (newAccount: Account | null) => {
         allowedModels.value = []
       }
     } else {
-      modelRestrictionMode.value = 'whitelist'
-      modelMappings.value = []
-      allowedModels.value = []
+      if (!useDefaultSupplierWhitelist(newAccount)) {
+        modelRestrictionMode.value = 'whitelist'
+        modelMappings.value = []
+        allowedModels.value = []
+      }
     }
   } else {
     const platformDefaultUrl =
@@ -2740,14 +2793,18 @@ const syncFormFromAccount = (newAccount: Account | null) => {
           allowedModels.value = []
         }
       } else {
+        if (!useDefaultSupplierWhitelist(newAccount)) {
+          modelRestrictionMode.value = 'whitelist'
+          modelMappings.value = []
+          allowedModels.value = []
+        }
+      }
+    } else {
+      if (!useDefaultSupplierWhitelist(newAccount)) {
         modelRestrictionMode.value = 'whitelist'
         modelMappings.value = []
         allowedModels.value = []
       }
-    } else {
-      modelRestrictionMode.value = 'whitelist'
-      modelMappings.value = []
-      allowedModels.value = []
     }
     poolModeEnabled.value = false
     poolModeRetryCount.value = DEFAULT_POOL_MODE_RETRY_COUNT

@@ -64,12 +64,20 @@
         </div>
 
         <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 dark:border-dark-700">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
+          <table class="min-w-full table-fixed divide-y divide-gray-200 dark:divide-dark-700">
+            <colgroup>
+              <col class="w-[14%]" />
+              <col class="w-[13%]" />
+              <col class="w-[6%]" />
+              <col class="w-[10%]" />
+              <col class="w-[49%]" />
+              <col class="w-[8%]" />
+            </colgroup>
             <thead class="bg-gray-50 dark:bg-dark-700/50">
               <tr>
                 <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">账号</th>
                 <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">供应商</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">状态</th>
+                <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 whitespace-nowrap">状态</th>
                 <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">报价</th>
                 <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">分组/策略</th>
                 <th class="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">操作</th>
@@ -104,14 +112,43 @@
                   </div>
                 </td>
                 <td class="px-4 py-3 text-sm">
-                  <div class="grid gap-2 lg:grid-cols-3">
-                    <input v-model="accountDrafts[account.id].group_ids" class="input" placeholder="分组 ID，逗号分隔" />
-                    <input v-model.number="accountDrafts[account.id].priority" class="input" placeholder="优先级" type="number" />
-                    <input v-model.number="accountDrafts[account.id].rate_multiplier" class="input" placeholder="倍率" type="number" step="0.01" />
+                  <div class="w-full min-w-[520px] rounded-lg border border-gray-100 bg-gray-50/70 p-3 dark:border-dark-700 dark:bg-dark-900/30">
+                    <div class="grid gap-3 lg:grid-cols-[1.35fr_0.9fr_0.9fr]">
+                      <label class="block">
+                        <span class="text-xs font-medium text-gray-600 dark:text-dark-300">绑定分组 ID</span>
+                        <input
+                          v-model="accountDrafts[account.id].group_ids"
+                          class="input mt-1"
+                          placeholder="例：1,2,3"
+                        />
+                        <span class="mt-1 block text-[11px] leading-4 text-gray-500 dark:text-dark-400">批准后加入这些调度分组，多个 ID 用逗号分隔。</span>
+                      </label>
+                      <label class="block">
+                        <span class="text-xs font-medium text-gray-600 dark:text-dark-300">调度优先级</span>
+                        <input
+                          v-model.number="accountDrafts[account.id].priority"
+                          class="input mt-1"
+                          placeholder="50"
+                          type="number"
+                        />
+                        <span class="mt-1 block text-[11px] leading-4 text-gray-500 dark:text-dark-400">数字越小越优先；默认 50。</span>
+                      </label>
+                      <label class="block">
+                        <span class="text-xs font-medium text-gray-600 dark:text-dark-300">计费倍率</span>
+                        <input
+                          v-model.number="accountDrafts[account.id].rate_multiplier"
+                          class="input mt-1"
+                          placeholder="1"
+                          type="number"
+                          step="0.01"
+                        />
+                        <span class="mt-1 block text-[11px] leading-4 text-gray-500 dark:text-dark-400">账号成本统计倍率；1 为原价，0 为不计费。</span>
+                      </label>
+                    </div>
                   </div>
                 </td>
                 <td class="px-4 py-3 align-top text-right text-sm">
-                  <div class="ml-auto grid w-[168px] gap-x-4 gap-y-2 whitespace-nowrap text-right">
+                  <div class="ml-auto grid gap-y-2 whitespace-nowrap text-right">
                     <button class="justify-self-end font-medium text-green-600 hover:text-green-700" @click="approveAccount(account)">批准</button>
                     <button class="justify-self-end font-medium text-red-600 hover:text-red-700" @click="rejectAccount(account)">驳回</button>
                     <template v-if="pendingPricing(account.id)">

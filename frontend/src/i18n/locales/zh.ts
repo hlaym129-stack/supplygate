@@ -2651,6 +2651,7 @@ export default {
       refreshCookie: '刷新 Cookie',
       testAccount: '测试账号',
       searchAccounts: '搜索账号...',
+      supportedModelsInline: '模型：{models}',
       notes: '备注',
       notesPlaceholder: '请输入备注',
       notesHint: '备注可选',

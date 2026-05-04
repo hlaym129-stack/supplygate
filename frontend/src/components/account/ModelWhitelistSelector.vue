@@ -133,6 +133,7 @@ const props = defineProps<{
   modelValue: string[]
   platform?: string
   platforms?: string[]
+  additionalModels?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -163,18 +164,37 @@ const normalizedPlatforms = computed(() => {
 })
 
 const availableOptions = computed(() => {
-  if (normalizedPlatforms.value.length === 0) {
-    return allModels
+  const optionMap = new Map<string, { value: string; label: string }>()
+  const addOption = (model: string) => {
+    const normalized = model.trim()
+    if (!normalized || optionMap.has(normalized)) return
+    optionMap.set(normalized, { value: normalized, label: normalized })
   }
 
-  const allowedModels = new Set<string>()
-  for (const platform of normalizedPlatforms.value) {
-    for (const model of getModelsByPlatform(platform)) {
-      allowedModels.add(model)
+  if (normalizedPlatforms.value.length === 0) {
+    for (const model of allModels) {
+      optionMap.set(model.value, model)
+    }
+  } else {
+    const allowedModels = new Set<string>()
+    for (const platform of normalizedPlatforms.value) {
+      for (const model of getModelsByPlatform(platform)) {
+        allowedModels.add(model)
+      }
+    }
+
+    for (const model of allModels) {
+      if (allowedModels.has(model.value)) {
+        optionMap.set(model.value, model)
+      }
     }
   }
 
-  return allModels.filter(model => allowedModels.has(model.value))
+  for (const model of props.additionalModels || []) {
+    addOption(model)
+  }
+
+  return Array.from(optionMap.values())
 })
 
 const filteredModels = computed(() => {

@@ -2495,6 +2495,16 @@ func (s *adminServiceImpl) resolveBulkUpdateTargetIDs(ctx context.Context, filte
 }
 
 func (s *adminServiceImpl) DeleteAccount(ctx context.Context, id int64) error {
+	account, err := s.accountRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if account.OwnerType == AccountOwnerTypeSupplier && account.ApprovalStatus != AccountApprovalStatusApproved {
+		return infraerrors.BadRequest(
+			"SUPPLIER_ACCOUNT_REVIEW_REQUIRED",
+			"supplier account applications must be reviewed from supplier management",
+		)
+	}
 	if err := s.accountRepo.Delete(ctx, id); err != nil {
 		return err
 	}

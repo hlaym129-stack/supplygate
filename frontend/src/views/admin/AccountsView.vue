@@ -183,6 +183,13 @@
             <div class="flex flex-col">
               <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
               <span
+                v-if="row.supported_models?.length"
+                class="mt-0.5 max-w-[260px] truncate text-xs text-gray-500 dark:text-gray-400"
+                :title="row.supported_models.join(', ')"
+              >
+                {{ t('admin.accounts.supportedModelsInline', { models: row.supported_models.join(', ') }) }}
+              </span>
+              <span
                 v-if="row.extra?.email_address"
                 class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]"
                 :title="row.extra.email_address"

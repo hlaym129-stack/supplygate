@@ -407,6 +407,31 @@ func (s *AccountRepoSuite) TestListWithFilters() {
 				s.ElementsMatch([]string{"privacy-unset", "privacy-empty"}, names)
 			},
 		},
+		{
+			name: "excludes_supplier_accounts_waiting_for_review",
+			setup: func(client *dbent.Client) {
+				mustCreateAccount(s.T(), client, &service.Account{
+					Name:           "platform-account",
+					OwnerType:      service.AccountOwnerTypePlatform,
+					ApprovalStatus: service.AccountApprovalStatusApproved,
+				})
+				mustCreateAccount(s.T(), client, &service.Account{
+					Name:           "supplier-pending",
+					OwnerType:      service.AccountOwnerTypeSupplier,
+					ApprovalStatus: service.AccountApprovalStatusPending,
+				})
+				mustCreateAccount(s.T(), client, &service.Account{
+					Name:           "supplier-approved",
+					OwnerType:      service.AccountOwnerTypeSupplier,
+					ApprovalStatus: service.AccountApprovalStatusApproved,
+				})
+			},
+			wantCount: 2,
+			validate: func(accounts []service.Account) {
+				names := []string{accounts[0].Name, accounts[1].Name}
+				s.Require().ElementsMatch([]string{"platform-account", "supplier-approved"}, names)
+			},
+		},
 	}
 
 	for _, tt := range tests {

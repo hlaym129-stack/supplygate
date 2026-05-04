@@ -16,12 +16,12 @@ func RegisterSupplierRoutes(
 
 	authenticated.POST("/supplier/apply", h.Supplier.ApplyProfile)
 	authenticated.GET("/supplier/model-pricing", h.Supplier.ModelPricing)
+	authenticated.GET("/supplier/profile", h.Supplier.GetProfile)
+	authenticated.PUT("/supplier/profile", h.Supplier.ApplyProfile)
 
 	supplier := authenticated.Group("/supplier")
 	supplier.Use(middleware.SupplierOnly(h.SupplierService))
 	{
-		supplier.GET("/profile", h.Supplier.GetProfile)
-		supplier.PUT("/profile", h.Supplier.ApplyProfile)
 		supplier.GET("/groups", h.Supplier.ListGroups)
 		supplier.GET("/proxies", h.Supplier.ListProxies)
 		supplier.GET("/models", h.Supplier.ListModels)

@@ -403,6 +403,7 @@ const appStore = useAppStore()
 function defaultRedirectPath(): string {
   if (authStore.isAdmin) return '/admin/dashboard'
   if (authStore.isSupplier) return '/supplier/dashboard'
+  if (authStore.hasSupplierProfile) return '/supplier/profile'
   return '/dashboard'
 }
 

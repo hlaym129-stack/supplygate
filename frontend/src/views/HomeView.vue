@@ -442,6 +442,7 @@ const isSupplier = computed(() => authStore.isSupplier)
 const dashboardPath = computed(() => {
   if (isAdmin.value) return '/admin/dashboard'
   if (isSupplier.value) return '/supplier/dashboard'
+  if (authStore.hasSupplierProfile) return '/supplier/profile'
   return '/dashboard'
 })
 const userInitial = computed(() => {

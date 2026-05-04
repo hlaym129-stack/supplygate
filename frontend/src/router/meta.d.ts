@@ -26,6 +26,12 @@ declare module 'vue-router' {
     requiresSupplier?: boolean
 
     /**
+     * Whether this route requires an existing supplier profile, regardless of approval status.
+     * @default false
+     */
+    requiresSupplierProfile?: boolean
+
+    /**
      * Page title for this route
      */
     title?: string

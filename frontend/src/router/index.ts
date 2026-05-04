@@ -372,7 +372,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/supplier/ProfileView.vue'),
     meta: {
       requiresAuth: true,
-      requiresSupplier: true,
+      requiresSupplierProfile: true,
       title: 'Supplier Profile'
     }
   },
@@ -656,6 +656,7 @@ const BACKEND_MODE_ALLOWED_PATHS = ['/login', '/key-usage', '/setup', '/payment/
 function roleDashboard(authStore: ReturnType<typeof useAuthStore>): string {
   if (authStore.isAdmin) return '/admin/dashboard'
   if (authStore.isSupplier) return '/supplier/dashboard'
+  if (authStore.hasSupplierProfile) return '/supplier/profile'
   return '/dashboard'
 }
 const BACKEND_MODE_CALLBACK_PATHS = [
@@ -718,6 +719,7 @@ router.beforeEach((to, _from, next) => {
   const requiresAuth = to.meta.requiresAuth !== false // Default to true
   const requiresAdmin = to.meta.requiresAdmin === true
   const requiresSupplier = to.meta.requiresSupplier === true
+  const requiresSupplierProfile = to.meta.requiresSupplierProfile === true
 
   // If route doesn't require auth, allow access
   if (!requiresAuth) {
@@ -766,13 +768,18 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
+  if (requiresSupplierProfile && !authStore.hasSupplierProfile) {
+    next(roleDashboard(authStore))
+    return
+  }
+
   if (authStore.isAdmin && to.path.startsWith('/supplier')) {
     next('/admin/dashboard')
     return
   }
 
-  if (!authStore.isAdmin && authStore.isSupplier && to.path === '/dashboard') {
-    next('/supplier/dashboard')
+  if (!authStore.isAdmin && authStore.hasSupplierProfile && to.path === '/dashboard') {
+    next(roleDashboard(authStore))
     return
   }
 

@@ -190,6 +190,32 @@ describe('EditAccountModal', () => {
     })
   })
 
+  it('uses approved supplier supported models as the default whitelist', async () => {
+    const account = buildAccount()
+    account.owner_type = 'supplier'
+    account.approval_status = 'approved'
+    account.supported_models = ['gpt-5.3-codex']
+    account.credentials = {
+      api_key: 'sk-test',
+      base_url: 'https://api.openai.com'
+    }
+    updateAccountMock.mockReset()
+    checkMixedChannelRiskMock.mockReset()
+    checkMixedChannelRiskMock.mockResolvedValue({ has_risk: false })
+    updateAccountMock.mockResolvedValue(account)
+
+    const wrapper = mountModal(account)
+
+    expect(wrapper.get('[data-testid="model-whitelist-value"]').text()).toBe('gpt-5.3-codex')
+
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+
+    expect(updateAccountMock).toHaveBeenCalledTimes(1)
+    expect(updateAccountMock.mock.calls[0]?.[1]?.credentials?.model_mapping).toEqual({
+      'gpt-5.3-codex': 'gpt-5.3-codex'
+    })
+  })
+
   it('submits OpenAI compact mode and compact-only model mapping', async () => {
     const account = buildAccount()
     account.extra = {

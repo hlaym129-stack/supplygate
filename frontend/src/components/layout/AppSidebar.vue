@@ -120,7 +120,7 @@
       </template>
 
       <!-- Supplier View -->
-      <template v-else-if="isSupplier">
+      <template v-else-if="hasSupplierProfile">
         <div class="sidebar-section">
           <router-link
             v-for="item in supplierNavItems"
@@ -256,6 +256,7 @@ const sidebarCollapsed = computed(() => appStore.sidebarCollapsed)
 const mobileOpen = computed(() => appStore.mobileOpen)
 const isAdmin = computed(() => authStore.isAdmin)
 const isSupplier = computed(() => authStore.isSupplier)
+const hasSupplierProfile = computed(() => authStore.hasSupplierProfile)
 const isDark = ref(document.documentElement.classList.contains('dark'))
 
 // Track which parent nav groups are expanded
@@ -698,12 +699,18 @@ function finalizeNav(items: NavItem[]): NavItem[] {
 // User navigation items (for regular users)
 const userNavItems = computed((): NavItem[] => finalizeNav(buildSelfNavItems(true)))
 
-const supplierNavItems = computed((): NavItem[] => [
-  { path: '/supplier/dashboard', label: '供应商看板', icon: DashboardIcon },
-  { path: '/supplier/accounts', label: '上游账号', icon: GlobeIcon },
-  { path: '/supplier/usage', label: '用量归属', icon: ChartIcon },
-  { path: '/supplier/profile', label: '主体资料', icon: UserIcon },
-])
+const supplierNavItems = computed((): NavItem[] => {
+  const profileItem = { path: '/supplier/profile', label: '主体资料', icon: UserIcon }
+  if (!isSupplier.value) {
+    return [profileItem]
+  }
+  return [
+    { path: '/supplier/dashboard', label: '供应商看板', icon: DashboardIcon },
+    { path: '/supplier/accounts', label: '上游账号', icon: GlobeIcon },
+    { path: '/supplier/usage', label: '用量归属', icon: ChartIcon },
+    profileItem,
+  ]
+})
 
 // Personal navigation items (for admin's "My Account" section, without Dashboard).
 // Admins access 可用渠道 from this section just like regular users — there is no

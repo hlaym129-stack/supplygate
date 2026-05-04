@@ -100,6 +100,10 @@ func (h *AuthHandler) respondWithTokenPair(c *gin.Context, user *service.User) {
 		response.ErrorFrom(c, err)
 		return
 	}
+	if err := enrichSupplierAccess(c.Request.Context(), h.supplierService, user); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
 
 	tokenPair, err := h.authService.GenerateTokenPair(c.Request.Context(), user, "")
 	if err != nil {

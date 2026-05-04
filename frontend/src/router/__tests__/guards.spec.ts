@@ -51,14 +51,17 @@ interface MockAuthState {
   isAuthenticated: boolean
   isAdmin: boolean
   isSupplier: boolean
+  hasSupplierProfile?: boolean
   isSimpleMode: boolean
   backendModeEnabled: boolean
   hasPendingAuthSession: boolean
 }
 
 function roleDashboard(authState: MockAuthState): string {
+  const hasSupplierProfile = authState.hasSupplierProfile ?? authState.isSupplier
   if (authState.isAdmin) return '/admin/dashboard'
   if (authState.isSupplier) return '/supplier/dashboard'
+  if (hasSupplierProfile) return '/supplier/profile'
   return '/dashboard'
 }
 
@@ -73,6 +76,8 @@ function simulateGuard(
   const requiresAuth = toMeta.requiresAuth !== false
   const requiresAdmin = toMeta.requiresAdmin === true
   const requiresSupplier = toMeta.requiresSupplier === true
+  const requiresSupplierProfile = toMeta.requiresSupplierProfile === true
+  const hasSupplierProfile = authState.hasSupplierProfile ?? authState.isSupplier
 
   // 不需要认证的路由
   if (!requiresAuth) {
@@ -120,12 +125,16 @@ function simulateGuard(
     return roleDashboard(authState)
   }
 
+  if (requiresSupplierProfile && !hasSupplierProfile) {
+    return roleDashboard(authState)
+  }
+
   if (authState.isAdmin && toPath.startsWith('/supplier')) {
     return '/admin/dashboard'
   }
 
-  if (!authState.isAdmin && authState.isSupplier && toPath === '/dashboard') {
-    return '/supplier/dashboard'
+  if (!authState.isAdmin && hasSupplierProfile && toPath === '/dashboard') {
+    return roleDashboard(authState)
   }
 
   // 简易模式限制
@@ -593,6 +602,34 @@ describe('路由守卫逻辑', () => {
       }
       const redirect = simulateGuard('/supplier/dashboard', { requiresSupplier: true }, authState)
       expect(redirect).toBe('/dashboard')
+    })
+
+    it('待审核供应商访问账号提交页被重定向到主体资料', () => {
+      const authState: MockAuthState = {
+        isAuthenticated: true,
+        isAdmin: false,
+        isSupplier: false,
+        hasSupplierProfile: true,
+        isSimpleMode: false,
+        backendModeEnabled: false,
+        hasPendingAuthSession: false,
+      }
+      const redirect = simulateGuard('/supplier/accounts', { requiresSupplier: true }, authState)
+      expect(redirect).toBe('/supplier/profile')
+    })
+
+    it('待审核供应商可以访问主体资料页', () => {
+      const authState: MockAuthState = {
+        isAuthenticated: true,
+        isAdmin: false,
+        isSupplier: false,
+        hasSupplierProfile: true,
+        isSimpleMode: false,
+        backendModeEnabled: false,
+        hasPendingAuthSession: false,
+      }
+      const redirect = simulateGuard('/supplier/profile', { requiresSupplierProfile: true }, authState)
+      expect(redirect).toBeNull()
     })
 
     it('纯供应商访问供应商页面允许通过', () => {

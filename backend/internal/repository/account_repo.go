@@ -612,7 +612,7 @@ func (r *accountRepository) ListSupplierAccounts(ctx context.Context, params pag
 }
 
 func (r *accountRepository) ListWithFilters(ctx context.Context, params pagination.PaginationParams, platform, accountType, status, search string, groupID int64, privacyMode string) ([]service.Account, *pagination.PaginationResult, error) {
-	q := r.client.Account.Query()
+	q := r.client.Account.Query().Where(supplierApprovedAccountPredicate())
 
 	if platform != "" {
 		q = q.Where(dbaccount.PlatformEQ(platform))

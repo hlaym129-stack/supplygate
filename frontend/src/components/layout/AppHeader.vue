@@ -272,6 +272,9 @@ const roleLabel = computed(() => {
   if (authStore.isSupplier) {
     return t('profile.supplier')
   }
+  if (authStore.hasSupplierProfile) {
+    return `${t('profile.supplier')} · 待审核`
+  }
   return t('profile.user')
 })
 

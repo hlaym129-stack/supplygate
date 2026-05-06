@@ -78,6 +78,23 @@ func TestLoadDefaultSchedulingConfig(t *testing.T) {
 	}
 }
 
+func TestLoadDefaultUpdateGitHubRepo(t *testing.T) {
+	resetViperWithJWTSecret(t)
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.Equal(t, "hlaym129-stack/supplygate", cfg.Update.GitHubRepo)
+}
+
+func TestLoadUpdateGitHubRepoFromEnv(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	t.Setenv("UPDATE_GITHUB_REPO", " owner/custom ")
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.Equal(t, "owner/custom", cfg.Update.GitHubRepo)
+}
+
 func TestLoadDefaultOpenAIWSConfig(t *testing.T) {
 	resetViperWithJWTSecret(t)
 

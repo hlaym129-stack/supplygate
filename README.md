@@ -95,7 +95,19 @@ underscores_in_headers on;
 
 ## 快速启动
 
-### 方式一：从本地源码 Docker 启动
+### 方式一：一键 Docker 部署
+
+用于直接安装已发布的 SupplyGate 镜像和部署模板。
+
+```bash
+curl -sSL https://raw.githubusercontent.com/hlaym129-stack/supplygate/main/deploy/docker-deploy.sh | bash
+docker compose up -d
+docker compose logs -f sub2api
+```
+
+访问：`http://localhost:8080`
+
+### 方式二：从本地源码 Docker 启动
 
 这是运行当前改造版本最直接的方式。`docker-compose.dev.yml` 会从本仓库源码构建镜像，并自动启动 PostgreSQL、Redis 和应用。
 
@@ -114,7 +126,7 @@ docker compose -f docker-compose.dev.yml logs -f sub2api
 
 如果 `ADMIN_PASSWORD` 留空，首次自动初始化时会在容器日志中输出生成的管理员密码。
 
-### 方式二：本地开发运行
+### 方式三：本地开发运行
 
 先准备 PostgreSQL 和 Redis。可以使用本机服务，也可以只启动开发 Compose 里的数据库和缓存：
 

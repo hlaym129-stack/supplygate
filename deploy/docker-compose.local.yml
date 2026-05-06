@@ -24,7 +24,7 @@ services:
   # Sub2API Application
   # ===========================================================================
   sub2api:
-    image: weishaw/sub2api:latest
+    image: ghcr.io/hlaym129-stack/supplygate:latest
     container_name: sub2api
     restart: unless-stopped
     ulimits:
@@ -143,6 +143,8 @@ services:
       # =======================================================================
       # Update Configuration (在线更新配置)
       # =======================================================================
+      # GitHub repository used by online updates
+      - UPDATE_GITHUB_REPO=${UPDATE_GITHUB_REPO:-hlaym129-stack/supplygate}
       # Proxy for accessing GitHub (online updates + pricing data)
       # Examples: http://host:port, socks5://host:port
       - UPDATE_PROXY_URL=${UPDATE_PROXY_URL:-}

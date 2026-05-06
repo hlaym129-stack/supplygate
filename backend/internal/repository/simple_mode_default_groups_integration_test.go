@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEnsureSimpleModeDefaultGroups_CreatesMissingDefaults(t *testing.T) {
+func TestEnsureDefaultGroups_CreatesMissingDefaults(t *testing.T) {
 	ctx := context.Background()
 	tx := testEntTx(t)
 	client := tx.Client()
@@ -20,22 +20,44 @@ func TestEnsureSimpleModeDefaultGroups_CreatesMissingDefaults(t *testing.T) {
 	seedCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	require.NoError(t, ensureSimpleModeDefaultGroups(seedCtx, client))
+	require.NoError(t, ensureDefaultGroups(seedCtx, client))
 
-	assertGroupExists := func(name string) {
-		exists, err := client.Group.Query().Where(group.NameEQ(name), group.DeletedAtIsNil()).Exist(seedCtx)
+	assertGroup := func(name, platform string, allowMessagesDispatch bool) {
+		g, err := client.Group.Query().Where(group.NameEQ(name), group.DeletedAtIsNil()).Only(seedCtx)
 		require.NoError(t, err)
-		require.True(t, exists, "expected group %s to exist", name)
+		require.Equal(t, platform, g.Platform)
+		require.Equal(t, service.StatusActive, g.Status)
+		require.Equal(t, service.SubscriptionTypeStandard, g.SubscriptionType)
+		require.Equal(t, 1.0, g.RateMultiplier)
+		require.False(t, g.IsExclusive)
+		require.Equal(t, 0, g.SortOrder)
+		require.Equal(t, 0, g.DefaultValidityDays)
+		require.NotNil(t, g.DailyLimitUsd)
+		require.NotNil(t, g.WeeklyLimitUsd)
+		require.NotNil(t, g.MonthlyLimitUsd)
+		require.Equal(t, 0.0, *g.DailyLimitUsd)
+		require.Equal(t, 0.0, *g.WeeklyLimitUsd)
+		require.Equal(t, 0.0, *g.MonthlyLimitUsd)
+		require.True(t, g.McpXMLInject)
+		require.Equal(t, allowMessagesDispatch, g.AllowMessagesDispatch)
+		require.Equal(t, 0, g.RpmLimit)
 	}
 
-	assertGroupExists(service.PlatformAnthropic + "-default")
-	assertGroupExists(service.PlatformOpenAI + "-default")
-	assertGroupExists(service.PlatformGemini + "-default")
-	assertGroupExists(service.PlatformAntigravity + "-default-1")
-	assertGroupExists(service.PlatformAntigravity + "-default-2")
+	assertGroup("GPT 系列-余额", service.PlatformOpenAI, true)
+	assertGroup("Claude 系列-余额", service.PlatformAnthropic, false)
+	assertGroup("Gemini 系列-余额", service.PlatformGemini, false)
+	assertGroup("Antigravity 系列-余额", service.PlatformAntigravity, false)
+
+	openAIGroup, err := client.Group.Query().Where(group.NameEQ("GPT 系列-余额"), group.DeletedAtIsNil()).Only(seedCtx)
+	require.NoError(t, err)
+	require.Equal(t, service.OpenAIMessagesDispatchModelConfig{
+		OpusMappedModel:   "gpt-5.5",
+		SonnetMappedModel: "gpt-5.3-codex",
+		HaikuMappedModel:  "gpt-5.4-mini",
+	}, openAIGroup.MessagesDispatchModelConfig)
 }
 
-func TestEnsureSimpleModeDefaultGroups_IgnoresSoftDeletedGroups(t *testing.T) {
+func TestEnsureDefaultGroups_IgnoresSoftDeletedGroups(t *testing.T) {
 	ctx := context.Background()
 	tx := testEntTx(t)
 	client := tx.Client()
@@ -43,9 +65,8 @@ func TestEnsureSimpleModeDefaultGroups_IgnoresSoftDeletedGroups(t *testing.T) {
 	seedCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// Create and then soft-delete an anthropic default group.
 	g, err := client.Group.Create().
-		SetName(service.PlatformAnthropic + "-default").
+		SetName("Claude 系列-余额").
 		SetPlatform(service.PlatformAnthropic).
 		SetStatus(service.StatusActive).
 		SetSubscriptionType(service.SubscriptionTypeStandard).
@@ -57,15 +78,14 @@ func TestEnsureSimpleModeDefaultGroups_IgnoresSoftDeletedGroups(t *testing.T) {
 	_, err = client.Group.Delete().Where(group.IDEQ(g.ID)).Exec(seedCtx)
 	require.NoError(t, err)
 
-	require.NoError(t, ensureSimpleModeDefaultGroups(seedCtx, client))
+	require.NoError(t, ensureDefaultGroups(seedCtx, client))
 
-	// New active one should exist.
-	count, err := client.Group.Query().Where(group.NameEQ(service.PlatformAnthropic+"-default"), group.DeletedAtIsNil()).Count(seedCtx)
+	count, err := client.Group.Query().Where(group.NameEQ("Claude 系列-余额"), group.DeletedAtIsNil()).Count(seedCtx)
 	require.NoError(t, err)
 	require.Equal(t, 1, count)
 }
 
-func TestEnsureSimpleModeDefaultGroups_AntigravityNeedsTwoGroupsOnlyByCount(t *testing.T) {
+func TestEnsureDefaultGroups_DoesNotOverwriteExistingDefaults(t *testing.T) {
 	ctx := context.Background()
 	tx := testEntTx(t)
 	client := tx.Client()
@@ -73,12 +93,24 @@ func TestEnsureSimpleModeDefaultGroups_AntigravityNeedsTwoGroupsOnlyByCount(t *t
 	seedCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	mustCreateGroup(t, client, &service.Group{Name: "ag-custom-1-" + time.Now().Format(time.RFC3339Nano), Platform: service.PlatformAntigravity})
-	mustCreateGroup(t, client, &service.Group{Name: "ag-custom-2-" + time.Now().Format(time.RFC3339Nano), Platform: service.PlatformAntigravity})
-
-	require.NoError(t, ensureSimpleModeDefaultGroups(seedCtx, client))
-
-	count, err := client.Group.Query().Where(group.PlatformEQ(service.PlatformAntigravity), group.DeletedAtIsNil()).Count(seedCtx)
+	g, err := client.Group.Create().
+		SetName("GPT 系列-余额").
+		SetDescription("custom").
+		SetPlatform(service.PlatformOpenAI).
+		SetStatus(service.StatusActive).
+		SetSubscriptionType(service.SubscriptionTypeStandard).
+		SetRateMultiplier(2.0).
+		SetIsExclusive(true).
+		SetAllowMessagesDispatch(false).
+		Save(seedCtx)
 	require.NoError(t, err)
-	require.GreaterOrEqual(t, count, 2)
+
+	require.NoError(t, ensureDefaultGroups(seedCtx, client))
+
+	got, err := client.Group.Query().Where(group.IDEQ(g.ID)).Only(seedCtx)
+	require.NoError(t, err)
+	require.Equal(t, "custom", got.Description)
+	require.Equal(t, 2.0, got.RateMultiplier)
+	require.True(t, got.IsExclusive)
+	require.False(t, got.AllowMessagesDispatch)
 }

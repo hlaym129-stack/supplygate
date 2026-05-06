@@ -74,8 +74,8 @@ FROM ${ALPINE_IMAGE}
 
 # Labels
 LABEL maintainer="Wei-Shaw <github.com/Wei-Shaw>"
-LABEL description="Sub2API - AI API Gateway Platform"
-LABEL org.opencontainers.image.source="https://github.com/Wei-Shaw/sub2api"
+LABEL description="SupplyGate - AI API Gateway Platform"
+LABEL org.opencontainers.image.source="https://github.com/hlaym129-stack/supplygate"
 
 # Install runtime dependencies
 RUN apk add --no-cache \

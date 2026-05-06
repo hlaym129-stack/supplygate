@@ -1,5 +1,10 @@
 docs/claude-relay-service/
 .codex
+AGENTS.md
+AI_WORKLOG.md
+CLAUDE.md
+DEV_GUIDE.md
+GEMINI.md
 
 # ===================
 # Go 后端

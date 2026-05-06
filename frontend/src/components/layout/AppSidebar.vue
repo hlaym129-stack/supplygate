@@ -707,6 +707,7 @@ const supplierNavItems = computed((): NavItem[] => {
   return [
     { path: '/supplier/dashboard', label: '供应商看板', icon: DashboardIcon },
     { path: '/supplier/accounts', label: '上游账号', icon: GlobeIcon },
+    { path: '/supplier/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
     { path: '/supplier/usage', label: '用量归属', icon: ChartIcon },
     profileItem,
   ]

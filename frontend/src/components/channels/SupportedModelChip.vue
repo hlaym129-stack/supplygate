@@ -143,6 +143,16 @@
                 </div>
               </div>
             </div>
+
+            <div
+              v-if="model.scheduled_pricing"
+              class="mt-2 space-y-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+            >
+              <div class="font-medium">
+                {{ t(prefixKey('scheduledPricing'), { time: formatScheduledTime(model.scheduled_effective_at) }) }}
+              </div>
+              <div>{{ formatPricingSummary(model.scheduled_pricing) }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -155,6 +165,7 @@ import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PricingRow from './PricingRow.vue'
 import { formatScaled } from '@/utils/pricing'
+import { formatDateTime } from '@/utils/format'
 import {
   BILLING_MODE_TOKEN,
   BILLING_MODE_PER_REQUEST,
@@ -163,7 +174,7 @@ import {
 } from '@/constants/channel'
 // 复用 api/channels.ts 的用户侧最小形态 DTO。
 // admin 侧 ChannelModelPricing 字段更多，但结构上是用户 DTO 的超集，admin 视图传入可直接通过结构化子类型检查。
-import type { UserPricingInterval, UserSupportedModel } from '@/api/channels'
+import type { UserPricingInterval, UserSupportedModel, UserSupportedModelPricing } from '@/api/channels'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import type { GroupPlatform } from '@/types'
 import { platformBadgeClass, platformBorderClass, platformBadgeLightClass } from '@/utils/platformColors'
@@ -239,6 +250,20 @@ function formatInterval(iv: UserPricingInterval, mode: BillingMode): string {
   const input = formatScaled(iv.input_price, perMillionScale)
   const output = formatScaled(iv.output_price, perMillionScale)
   return `${input} / ${output}`
+}
+
+function formatScheduledTime(value?: string | null): string {
+  return formatDateTime(value) || '-'
+}
+
+function formatPricingSummary(pricing: UserSupportedModelPricing): string {
+  if (pricing.billing_mode === BILLING_MODE_PER_REQUEST) {
+    return `${t(prefixKey('perRequestPrice'))}: ${formatScaled(pricing.per_request_price, 1)} ${t(prefixKey('unitPerRequest'))}`
+  }
+  if (pricing.billing_mode === BILLING_MODE_IMAGE) {
+    return `${t(prefixKey('imageOutputPrice'))}: ${formatScaled(pricing.image_output_price, 1)} ${t(prefixKey('unitPerRequest'))}`
+  }
+  return `${t(prefixKey('inputPrice'))}: ${formatScaled(pricing.input_price, perMillionScale)} / ${t(prefixKey('outputPrice'))}: ${formatScaled(pricing.output_price, perMillionScale)} ${t(prefixKey('unitPerMillion'))}`
 }
 
 // ── Popover positioning ─────────────────────────────────────────────

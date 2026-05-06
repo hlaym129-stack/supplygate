@@ -121,6 +121,40 @@ export interface SupplierAccountPricingRevision {
   updated_at: string
 }
 
+function normalizePricingNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  return null
+}
+
+function normalizeChannelPricing(raw: any): ChannelModelPricing {
+  return {
+    id: raw?.id ?? raw?.ID,
+    platform: raw?.platform ?? raw?.Platform ?? '',
+    models: Array.isArray(raw?.models) ? raw.models : (Array.isArray(raw?.Models) ? raw.Models : []),
+    billing_mode: raw?.billing_mode ?? raw?.BillingMode ?? 'token',
+    input_price: normalizePricingNumber(raw?.input_price ?? raw?.InputPrice),
+    output_price: normalizePricingNumber(raw?.output_price ?? raw?.OutputPrice),
+    cache_write_price: normalizePricingNumber(raw?.cache_write_price ?? raw?.CacheWritePrice),
+    cache_read_price: normalizePricingNumber(raw?.cache_read_price ?? raw?.CacheReadPrice),
+    image_output_price: normalizePricingNumber(raw?.image_output_price ?? raw?.ImageOutputPrice),
+    per_request_price: normalizePricingNumber(raw?.per_request_price ?? raw?.PerRequestPrice),
+    intervals: Array.isArray(raw?.intervals) ? raw.intervals : (Array.isArray(raw?.Intervals) ? raw.Intervals : [])
+  }
+}
+
+export function normalizeSupplierPricingRevision(revision: SupplierAccountPricingRevision): SupplierAccountPricingRevision {
+  return {
+    ...revision,
+    pricing: Array.isArray(revision.pricing)
+      ? revision.pricing.map((item) => normalizeChannelPricing(item))
+      : []
+  }
+}
+
+export function normalizeSupplierPricingRevisions(revisions: SupplierAccountPricingRevision[]): SupplierAccountPricingRevision[] {
+  return Array.isArray(revisions) ? revisions.map(normalizeSupplierPricingRevision) : []
+}
+
 export const supplierAPI = {
   async applyProfile(input: SupplierProfileInput): Promise<SupplierProfile> {
     const { data } = await apiClient.post<SupplierProfile>('/supplier/apply', input)
@@ -167,7 +201,7 @@ export const supplierAPI = {
     const { data } = await apiClient.get<ChannelModelPricing>('/supplier/model-pricing', {
       params: { model }
     })
-    return data
+    return normalizeChannelPricing(data)
   },
 
   async testAccount(input: SupplierAccountInput | CreateAccountRequest): Promise<SupplierAccountPretestResult> {
@@ -196,12 +230,12 @@ export const supplierAPI = {
 
   async listPricingRevisions(accountId: number): Promise<SupplierAccountPricingRevision[]> {
     const { data } = await apiClient.get<SupplierAccountPricingRevision[]>(`/supplier/accounts/${accountId}/pricing-revisions`)
-    return data
+    return normalizeSupplierPricingRevisions(data)
   },
 
   async submitPricingChange(accountId: number, input: { settlement_pricing: ChannelModelPricing[]; submit_note?: string }): Promise<SupplierAccountPricingRevision> {
     const { data } = await apiClient.post<SupplierAccountPricingRevision>(`/supplier/accounts/${accountId}/pricing-change`, input)
-    return data
+    return normalizeSupplierPricingRevision(data)
   },
 
   async requestAccountEdit(id: number, reason: string): Promise<Account> {

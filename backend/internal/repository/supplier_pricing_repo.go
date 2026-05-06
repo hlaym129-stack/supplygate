@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/lib/pq"
 )
 
 const supplierPricingRevisionColumns = `
@@ -80,15 +81,59 @@ func (r *supplierRepository) GetPendingPricingRevision(ctx context.Context, acco
 	return translateSupplierPricingNotFound(row, err)
 }
 
-func (r *supplierRepository) GetEffectivePricingRevision(ctx context.Context, accountID int64) (*service.SupplierAccountPricingRevision, error) {
+func (r *supplierRepository) GetPricingRevisionByID(ctx context.Context, revisionID int64) (*service.SupplierAccountPricingRevision, error) {
 	row, err := querySingleSupplierPricingRevision(ctx, r.sql, fmt.Sprintf(`
 		SELECT %s
 		FROM supplier_account_pricing_revisions
-		WHERE account_id = $1 AND status = $2 AND effective_at IS NOT NULL
+		WHERE id = $1
+		LIMIT 1
+	`, supplierPricingRevisionColumns), revisionID)
+	return translateSupplierPricingNotFound(row, err)
+}
+
+func (r *supplierRepository) GetEffectivePricingRevisionAt(ctx context.Context, accountID int64, at time.Time) (*service.SupplierAccountPricingRevision, error) {
+	row, err := querySingleSupplierPricingRevision(ctx, r.sql, fmt.Sprintf(`
+		SELECT %s
+		FROM supplier_account_pricing_revisions
+		WHERE account_id = $1
+		  AND status = $2
+		  AND effective_at IS NOT NULL
+		  AND effective_at <= $3
 		ORDER BY effective_at DESC, id DESC
 		LIMIT 1
-	`, supplierPricingRevisionColumns), accountID, service.SupplierPricingRevisionStatusApproved)
+	`, supplierPricingRevisionColumns), accountID, service.SupplierPricingRevisionStatusApproved, at)
 	return translateSupplierPricingNotFound(row, err)
+}
+
+func (r *supplierRepository) ListApprovedPricingRevisionsForAccounts(ctx context.Context, accountIDs []int64) (map[int64][]service.SupplierAccountPricingRevision, error) {
+	out := make(map[int64][]service.SupplierAccountPricingRevision, len(accountIDs))
+	if len(accountIDs) == 0 {
+		return out, nil
+	}
+	rows, err := r.sql.QueryContext(ctx, fmt.Sprintf(`
+		SELECT %s
+		FROM supplier_account_pricing_revisions
+		WHERE account_id = ANY($1)
+		  AND status = $2
+		  AND effective_at IS NOT NULL
+		ORDER BY account_id ASC, effective_at ASC, id ASC
+	`, supplierPricingRevisionColumns), pq.Array(accountIDs), service.SupplierPricingRevisionStatusApproved)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		item, err := scanSupplierPricingRevision(rows)
+		if err != nil {
+			return nil, err
+		}
+		out[item.AccountID] = append(out[item.AccountID], *item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (r *supplierRepository) GetLatestPricingRevisionBySupplierAndKind(ctx context.Context, supplierID int64, kind string, since time.Time) (*service.SupplierAccountPricingRevision, error) {
@@ -104,10 +149,24 @@ func (r *supplierRepository) GetLatestPricingRevisionBySupplierAndKind(ctx conte
 	return translateSupplierPricingNotFound(row, err)
 }
 
-func (r *supplierRepository) ReviewPricingRevision(ctx context.Context, revisionID int64, status string, reviewerID int64, reviewNote string, effective bool) (*service.SupplierAccountPricingRevision, error) {
-	effectiveExpr := "NULL"
-	if effective {
-		effectiveExpr = "NOW()"
+func (r *supplierRepository) CountPricingRevisionsBySupplierAndKindSince(ctx context.Context, supplierID int64, kind string, since time.Time) (int, error) {
+	var count int
+	if err := scanSingleRow(ctx, r.sql, `
+		SELECT COUNT(*)
+		FROM supplier_account_pricing_revisions
+		WHERE supplier_id = $1
+		  AND revision_kind = $2
+		  AND created_at >= $3
+	`, []any{supplierID, kind, since}, &count); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *supplierRepository) ReviewPricingRevision(ctx context.Context, revisionID int64, status string, reviewerID int64, reviewNote string, effectiveAt *time.Time) (*service.SupplierAccountPricingRevision, error) {
+	var effectiveValue any
+	if effectiveAt != nil {
+		effectiveValue = *effectiveAt
 	}
 	return querySingleSupplierPricingRevision(ctx, r.sql, fmt.Sprintf(`
 		UPDATE supplier_account_pricing_revisions
@@ -115,12 +174,12 @@ func (r *supplierRepository) ReviewPricingRevision(ctx context.Context, revision
 		    review_note = $3,
 		    reviewed_by = $4,
 		    reviewed_at = NOW(),
-		    effective_at = %s,
+		    effective_at = $5,
 		    updated_at = NOW()
 		WHERE id = $1
 		  AND status = '`+service.SupplierPricingRevisionStatusPending+`'
 		RETURNING %s
-	`, effectiveExpr, supplierPricingRevisionColumns), revisionID, status, reviewNote, reviewerID)
+	`, supplierPricingRevisionColumns), revisionID, status, reviewNote, reviewerID, effectiveValue)
 }
 
 func querySingleSupplierPricingRevision(ctx context.Context, q sqlQueryer, query string, args ...any) (*service.SupplierAccountPricingRevision, error) {

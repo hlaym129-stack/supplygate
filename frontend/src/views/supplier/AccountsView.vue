@@ -49,6 +49,9 @@
                 <div v-if="effectiveRevision(account.id)" class="mt-1 text-xs text-gray-500">
                   生效：{{ formatPricingSummary(effectiveRevision(account.id)) }}
                 </div>
+                <div v-if="scheduledRevision(account.id)" class="mt-1 text-xs text-amber-600">
+                  待生效：{{ formatDateTime(scheduledRevision(account.id)?.effective_at) }}
+                </div>
                 <div v-if="latestRevision(account.id)?.revision_kind" class="mt-1 text-xs text-gray-400">
                   {{ latestRevision(account.id)?.revision_kind === 'change' ? '改价单' : '初始报价' }}
                 </div>
@@ -58,11 +61,10 @@
                 <button v-if="account.approval_status === 'returned'" class="text-primary-600 hover:text-primary-700" @click="startEdit(account)">编辑</button>
                 <button
                   v-if="account.approval_status === 'approved'"
-                  class="ml-3 text-emerald-600 hover:text-emerald-700 disabled:cursor-not-allowed disabled:text-gray-400"
-                  :disabled="!isPricingChangeWindowOpen"
+                  class="ml-3 text-emerald-600 hover:text-emerald-700"
                   @click="openPricingChange(account)"
                 >
-                  {{ isPricingChangeWindowOpen ? '提交改价' : '改价窗口关闭' }}
+                  提交改价
                 </button>
                 <button v-else-if="account.supplier_edit_request_status !== 'pending'" class="ml-3 text-amber-600 hover:text-amber-700" @click="requestEdit(account)">申请退回修改</button>
                 <span v-else class="text-xs text-gray-500">已申请</span>
@@ -91,7 +93,7 @@
 
       <BaseDialog :show="showPricingDialog" title="提交价格变更" @close="closePricingDialog">
         <div class="space-y-4">
-          <p class="text-sm text-gray-500 dark:text-dark-400">新报价提交后需要管理员审核，审核通过后才会影响后续结算。纯供货商每天只能在 07:00-07:30 提交一次改价。</p>
+          <p class="text-sm text-gray-500 dark:text-dark-400">新报价可随时提交，每天最多 3 次。审核通过后，07:30 前提交的改价在当天 07:30 生效，07:30 及以后提交的改价在次日 07:30 生效；生效前仍按原报价结算。</p>
           <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
               <thead>
@@ -125,6 +127,28 @@
           </div>
         </div>
       </BaseDialog>
+
+      <BaseDialog :show="showEditRequestDialog" title="申请退回修改" @close="closeEditRequestDialog">
+        <div class="space-y-4">
+          <p class="text-sm text-gray-500 dark:text-dark-400">填写原因后提交给管理员审核，审核通过后可重新编辑账号。</p>
+          <div v-if="editRequestAccount" class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700 dark:bg-dark-900/40 dark:text-dark-300">
+            #{{ editRequestAccount.id }} {{ editRequestAccount.name }}
+          </div>
+          <textarea
+            v-model="editRequestReason"
+            class="input min-h-[120px]"
+            placeholder="请输入退回修改原因"
+          />
+        </div>
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <button class="btn btn-secondary" :disabled="editRequestSubmitting" @click="closeEditRequestDialog">取消</button>
+            <button class="btn btn-primary" :disabled="editRequestSubmitting || !editRequestReason.trim()" @click="submitEditRequest">
+              {{ editRequestSubmitting ? '提交中...' : '提交申请' }}
+            </button>
+          </div>
+        </template>
+      </BaseDialog>
     </div>
   </AppLayout>
 </template>
@@ -148,8 +172,11 @@ const pricingAccount = ref<Account | null>(null)
 const pricingRows = ref<PricingRow[]>([])
 const pricingSubmitNote = ref('')
 const pricingSubmitting = ref(false)
+const showEditRequestDialog = ref(false)
+const editRequestAccount = ref<Account | null>(null)
+const editRequestReason = ref('')
+const editRequestSubmitting = ref(false)
 const appStore = useAppStore()
-const isPricingChangeWindowOpen = ref(false)
 
 interface PricingRow {
   model: string
@@ -189,11 +216,32 @@ function startEdit(account: Account) {
   showCreate.value = true
 }
 
-async function requestEdit(account: Account) {
-  const reason = window.prompt('请输入退回修改原因') || ''
-  if (!reason.trim()) return
-  await supplierAPI.requestAccountEdit(account.id, reason.trim())
-  await loadAccounts()
+function requestEdit(account: Account) {
+  editRequestAccount.value = account
+  editRequestReason.value = ''
+  showEditRequestDialog.value = true
+}
+
+function closeEditRequestDialog() {
+  if (editRequestSubmitting.value) return
+  showEditRequestDialog.value = false
+  editRequestAccount.value = null
+  editRequestReason.value = ''
+}
+
+async function submitEditRequest() {
+  if (!editRequestAccount.value || !editRequestReason.value.trim()) return
+  editRequestSubmitting.value = true
+  try {
+    await supplierAPI.requestAccountEdit(editRequestAccount.value.id, editRequestReason.value.trim())
+    appStore.showSuccess('退回修改申请已提交')
+    closeEditRequestDialog()
+    await loadAccounts()
+  } catch (error: any) {
+    appStore.showError(error.response?.data?.message || error.response?.data?.detail || error.message || '提交退回修改申请失败')
+  } finally {
+    editRequestSubmitting.value = false
+  }
 }
 
 function latestRevision(accountId: number) {
@@ -201,13 +249,18 @@ function latestRevision(accountId: number) {
 }
 
 function effectiveRevision(accountId: number) {
-  return revisionsByAccount[accountId]?.find(revision => revision.status === 'approved' && revision.effective_at)
+  return revisionsByAccount[accountId]?.find(revision => isRevisionActive(revision))
+}
+
+function scheduledRevision(accountId: number) {
+  return revisionsByAccount[accountId]?.find(revision => isRevisionScheduled(revision))
 }
 
 function pricingLabel(accountId: number): string {
   const revisions = revisionsByAccount[accountId] || []
   if (revisions.some(revision => revision.status === 'pending')) return '待审核'
-  if (revisions.some(revision => revision.status === 'approved' && revision.effective_at)) return '已生效'
+  if (revisions.some(revision => isRevisionActive(revision))) return '已生效'
+  if (revisions.some(revision => isRevisionScheduled(revision))) return '待生效'
   if (revisions.some(revision => revision.status === 'rejected')) return '已拒绝'
   return '未提交'
 }
@@ -221,7 +274,26 @@ function pricingClass(status?: string): string {
 
 function formatPricingSummary(revision?: SupplierAccountPricingRevision) {
   if (!revision?.pricing?.length) return '-'
-  return revision.pricing.map(item => `${item.models.join('/')}: $${perTokenToMTok(item.input_price) ?? 0}/$${perTokenToMTok(item.output_price) ?? 0}`).join('，')
+  return revision.pricing.map(item => {
+    const models = Array.isArray(item.models) ? item.models : []
+    const model = models.length ? models.join('/') : '-'
+    return `${model}: $${perTokenToMTok(item.input_price) ?? 0}/$${perTokenToMTok(item.output_price) ?? 0}`
+  }).join('，')
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return '-'
+  return new Date(value).toLocaleString()
+}
+
+function isRevisionActive(revision?: SupplierAccountPricingRevision) {
+  if (!revision?.effective_at || revision.status !== 'approved') return false
+  return new Date(revision.effective_at).getTime() <= Date.now()
+}
+
+function isRevisionScheduled(revision?: SupplierAccountPricingRevision) {
+  if (!revision?.effective_at || revision.status !== 'approved') return false
+  return new Date(revision.effective_at).getTime() > Date.now()
 }
 
 function perTokenToMTok(value: number | null | undefined) {
@@ -238,7 +310,10 @@ function openPricingChange(account: Account) {
   pricingAccount.value = account
   const effective = effectiveRevision(account.id)
   const byModel = new Map<string, ChannelModelPricing>()
-  effective?.pricing?.forEach(item => item.models.forEach(model => byModel.set(model, item)))
+  effective?.pricing?.forEach(item => {
+    const models = Array.isArray(item.models) ? item.models : []
+    models.forEach(model => byModel.set(model, item))
+  })
   pricingRows.value = (account.supported_models || []).map(model => {
     const pricing = byModel.get(model)
     return {
@@ -306,12 +381,6 @@ function closeModal() {
 }
 
 onMounted(async () => {
-  const now = new Date()
-  const start = new Date(now)
-  start.setHours(7, 0, 0, 0)
-  const end = new Date(now)
-  end.setHours(7, 30, 0, 0)
-  isPricingChangeWindowOpen.value = now >= start && now < end
   await loadAccounts()
 })
 </script>

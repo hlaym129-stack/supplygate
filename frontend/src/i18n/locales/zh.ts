@@ -964,6 +964,7 @@ export default {
   // Available Channels (user-facing)
   availableChannels: {
     title: '可用渠道',
+    detailTitle: '渠道报价详情',
     description: '查看您可访问的渠道与其支持的模型、定价',
     searchPlaceholder: '搜索渠道或模型...',
     empty: '暂无可用渠道',
@@ -973,6 +974,28 @@ export default {
     public: '公开',
     exclusiveTooltip: '管理员授权给你的专属分组',
     publicTooltip: '对所有用户公开的分组',
+    source: {
+      supplier: '供应商',
+      configured: '渠道'
+    },
+    marketplace: {
+      searchPlaceholder: '搜索模型、渠道、供应商、平台或分组...',
+      offerCount: '{count} 个报价',
+      lowestPrice: '最低当前价',
+      detailDescription: '当前模型共有 {count} 个可用报价',
+      currentPricing: '当前价格',
+      sortMetric: '排序口径',
+      modelNotFound: '未找到该模型的可用报价',
+      sort: {
+        input: '输入价',
+        output: '输出价',
+        total: '输入+输出',
+        perRequest: '每次请求',
+        imageOutput: '图片输出',
+        asc: '升序',
+        desc: '降序'
+      }
+    },
     columns: {
       name: '渠道名',
       description: '描述',
@@ -992,6 +1015,7 @@ export default {
       imageOutputPrice: '图片输出',
       perRequestPrice: '每次请求',
       intervals: '阶梯定价',
+      scheduledPricing: '待生效：{time}',
       unitPerMillion: '/ 1M token',
       unitPerRequest: '/ 次'
     }
@@ -1953,6 +1977,7 @@ export default {
       deleteConfirmSubscription:
         "确定要删除订阅分组 '{name}' 吗？此操作会让所有绑定此订阅的用户的 API Key 失效，并删除所有相关的订阅记录。此操作无法撤销。",
       columns: {
+        id: 'ID',
         name: '名称',
         platform: '平台',
         rateMultiplier: '费率倍数',

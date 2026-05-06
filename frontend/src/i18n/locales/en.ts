@@ -960,6 +960,7 @@ export default {
   // Available Channels (user-facing)
   availableChannels: {
     title: 'Available Channels',
+    detailTitle: 'Channel Pricing Detail',
     description: 'Channels you can access, along with their supported models and pricing',
     searchPlaceholder: 'Search channels or models...',
     empty: 'No available channels',
@@ -969,6 +970,28 @@ export default {
     public: 'Public',
     exclusiveTooltip: 'Exclusive groups granted to you by an admin',
     publicTooltip: 'Groups open to all users',
+    source: {
+      supplier: 'Supplier',
+      configured: 'Channel'
+    },
+    marketplace: {
+      searchPlaceholder: 'Search models, channels, suppliers, platforms, or groups...',
+      offerCount: '{count} offers',
+      lowestPrice: 'Lowest current price',
+      detailDescription: '{count} available offers for this model',
+      currentPricing: 'Current Pricing',
+      sortMetric: 'Sort By',
+      modelNotFound: 'No available offers were found for this model',
+      sort: {
+        input: 'Input Price',
+        output: 'Output Price',
+        total: 'Input + Output',
+        perRequest: 'Per Request',
+        imageOutput: 'Image Output',
+        asc: 'Ascending',
+        desc: 'Descending'
+      }
+    },
     columns: {
       name: 'Channel',
       description: 'Description',
@@ -988,6 +1011,7 @@ export default {
       imageOutputPrice: 'Image Output',
       perRequestPrice: 'Per Request',
       intervals: 'Tiered Pricing',
+      scheduledPricing: 'Pending: {time}',
       unitPerMillion: '/ 1M tokens',
       unitPerRequest: '/ request'
     }
@@ -1903,6 +1927,7 @@ export default {
       nonExclusive: 'Non-Exclusive',
       public: 'Public',
       columns: {
+        id: 'ID',
         name: 'Name',
         platform: 'Platform',
         rateMultiplier: 'Rate Multiplier',

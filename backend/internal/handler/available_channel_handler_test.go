@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
@@ -54,6 +55,30 @@ func TestToUserSupportedModels_FiltersByAllowedPlatforms(t *testing.T) {
 	require.Equal(t, "claude-sonnet-4-6", out[0].Name)
 }
 
+func TestToUserSupportedModels_MapsSupplierPricingSchedule(t *testing.T) {
+	currentAt := time.Date(2026, 5, 5, 7, 30, 0, 0, time.UTC)
+	scheduledAt := currentAt.Add(24 * time.Hour)
+	src := []service.SupportedModel{
+		{
+			Name:                 "gpt-5.4-mini",
+			Platform:             "openai",
+			Pricing:              &service.ChannelModelPricing{BillingMode: service.BillingModeToken, InputPrice: testFloat64Ptr(0.75e-6)},
+			PricingEffectiveAt:   &currentAt,
+			ScheduledPricing:     &service.ChannelModelPricing{BillingMode: service.BillingModeToken, InputPrice: testFloat64Ptr(0.8e-6)},
+			ScheduledEffectiveAt: &scheduledAt,
+		},
+	}
+
+	out := toUserSupportedModels(src, nil)
+	require.Len(t, out, 1)
+	require.NotNil(t, out[0].Pricing)
+	require.NotNil(t, out[0].ScheduledPricing)
+	require.Equal(t, currentAt, *out[0].PricingEffectiveAt)
+	require.Equal(t, scheduledAt, *out[0].ScheduledEffectiveAt)
+	require.Equal(t, 0.75e-6, *out[0].Pricing.InputPrice)
+	require.Equal(t, 0.8e-6, *out[0].ScheduledPricing.InputPrice)
+}
+
 func TestToUserSupportedModels_NilAllowedPlatformsKeepsAll(t *testing.T) {
 	// 显式传 nil allowedPlatforms 表示不做过滤。
 	src := []service.SupportedModel{
@@ -65,10 +90,11 @@ func TestToUserSupportedModels_NilAllowedPlatformsKeepsAll(t *testing.T) {
 
 func TestUserAvailableChannel_FieldWhitelist(t *testing.T) {
 	// 通过序列化 userAvailableChannel 结构体验证响应形状：
-	// 只有 name / description / platforms；不含管理端字段。
+	// 只有 name / description / source / platforms；不含管理端字段。
 	row := userAvailableChannel{
 		Name:        "ch",
 		Description: "d",
+		Source:      service.AvailableChannelSourceSupplierAccount,
 		Platforms: []userChannelPlatformSection{
 			{
 				Platform:        "anthropic",
@@ -86,7 +112,7 @@ func TestUserAvailableChannel_FieldWhitelist(t *testing.T) {
 		_, exists := decoded[key]
 		require.Falsef(t, exists, "user DTO must not expose %q", key)
 	}
-	for _, key := range []string{"name", "description", "platforms"} {
+	for _, key := range []string{"name", "description", "source", "platforms"} {
 		_, exists := decoded[key]
 		require.Truef(t, exists, "user DTO must expose %q", key)
 	}
@@ -155,3 +181,5 @@ func TestBuildPlatformSections_GroupsByPlatform(t *testing.T) {
 	require.Len(t, sections[0].SupportedModels, 1)
 	require.Equal(t, "claude-sonnet-4-6", sections[0].SupportedModels[0].Name)
 }
+
+func testFloat64Ptr(v float64) *float64 { return &v }

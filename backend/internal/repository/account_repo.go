@@ -581,7 +581,17 @@ func (r *accountRepository) ListSupplierAccounts(ctx context.Context, params pag
 		q = q.Where(dbaccount.SupplierIDEQ(filters.SupplierID))
 	}
 	if filters.ApprovalStatus != "" {
-		q = q.Where(dbaccount.ApprovalStatusEQ(filters.ApprovalStatus))
+		if filters.ApprovalStatus == service.AccountApprovalStatusPending {
+			q = q.Where(dbaccount.Or(
+				dbaccount.ApprovalStatusEQ(filters.ApprovalStatus),
+				dbaccount.And(
+					dbaccount.ApprovalStatusEQ(service.AccountApprovalStatusApproved),
+					supplierAccountPendingPricingPredicate(),
+				),
+			))
+		} else {
+			q = q.Where(dbaccount.ApprovalStatusEQ(filters.ApprovalStatus))
+		}
 	}
 	total, err := q.Count(ctx)
 	if err != nil {
@@ -609,6 +619,52 @@ func (r *accountRepository) ListSupplierAccounts(ctx context.Context, params pag
 		outAccounts[i].Supplier = supplierProfileEntityToService(accounts[i].Edges.Supplier)
 	}
 	return outAccounts, paginationResultFromTotal(int64(total), params), nil
+}
+
+func (r *accountRepository) ListAvailableSupplierAccounts(ctx context.Context) ([]service.Account, error) {
+	now := time.Now()
+	accounts, err := r.client.Account.Query().
+		Where(
+			dbaccount.OwnerTypeEQ(service.AccountOwnerTypeSupplier),
+			dbaccount.ApprovalStatusEQ(service.AccountApprovalStatusApproved),
+			dbaccount.StatusEQ(service.StatusActive),
+			dbaccount.SchedulableEQ(true),
+			dbaccount.DeletedAtIsNil(),
+			dbaccount.HasAccountGroups(),
+			tempUnschedulablePredicate(),
+			notExpiredPredicate(now),
+			dbaccount.Or(dbaccount.OverloadUntilIsNil(), dbaccount.OverloadUntilLTE(now)),
+			dbaccount.Or(dbaccount.RateLimitResetAtIsNil(), dbaccount.RateLimitResetAtLTE(now)),
+		).
+		WithSupplier().
+		Order(dbent.Asc(dbaccount.FieldPriority), dbent.Asc(dbaccount.FieldID)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	outAccounts, err := r.accountsToService(ctx, accounts)
+	if err != nil {
+		return nil, err
+	}
+	for i := range outAccounts {
+		if i >= len(accounts) || accounts[i] == nil || accounts[i].Edges.Supplier == nil {
+			continue
+		}
+		outAccounts[i].Supplier = supplierProfileEntityToService(accounts[i].Edges.Supplier)
+	}
+	return outAccounts, nil
+}
+
+func supplierAccountPendingPricingPredicate() dbpredicate.Account {
+	return dbpredicate.Account(func(s *entsql.Selector) {
+		s.Where(entsql.P(func(b *entsql.Builder) {
+			b.WriteString("EXISTS (SELECT 1 FROM supplier_account_pricing_revisions sapr WHERE sapr.account_id = ").
+				Ident(s.C(dbaccount.FieldID)).
+				WriteString(" AND sapr.status = ").
+				Arg(service.SupplierPricingRevisionStatusPending).
+				WriteString(")")
+		}))
+	})
 }
 
 func (r *accountRepository) ListWithFilters(ctx context.Context, params pagination.PaginationParams, platform, accountType, status, search string, groupID int64, privacyMode string) ([]service.Account, *pagination.PaginationResult, error) {

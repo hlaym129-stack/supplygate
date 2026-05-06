@@ -35,10 +35,11 @@
               <td class="px-4 py-3 text-sm">{{ statusLabel(profile.status) }}</td>
               <td class="px-4 py-3 text-sm text-gray-600 dark:text-dark-300">{{ profile.review_note || '-' }}</td>
               <td class="px-4 py-3 align-top text-right text-sm">
-                <div class="flex justify-end gap-4 whitespace-nowrap">
+                <div v-if="profile.status === 'pending'" class="flex justify-end gap-4 whitespace-nowrap">
                   <button class="font-medium text-green-600 hover:text-green-700" @click="review(profile.id, 'approved')">通过</button>
                   <button class="font-medium text-red-600 hover:text-red-700" @click="openRejectProfile(profile.id)">驳回</button>
                 </div>
+                <span v-else class="text-gray-400 dark:text-dark-500">-</span>
               </td>
             </tr>
             <tr v-if="profiles.length === 0">
@@ -110,6 +111,9 @@
                   <div v-if="effectivePricing(account.id)" class="mt-2 text-xs text-gray-500">
                     当前生效：{{ pricingSummary(effectivePricing(account.id)) }}
                   </div>
+                  <div v-if="scheduledPricing(account.id)" class="mt-2 text-xs text-amber-600">
+                    待生效：{{ formatDateTime(scheduledPricing(account.id)?.effective_at) }}
+                  </div>
                 </td>
                 <td class="px-4 py-3 text-sm">
                   <div class="w-full min-w-[520px] rounded-lg border border-gray-100 bg-gray-50/70 p-3 dark:border-dark-700 dark:bg-dark-900/30">
@@ -121,7 +125,7 @@
                           class="input mt-1"
                           placeholder="例：1,2,3"
                         />
-                        <span class="mt-1 block text-[11px] leading-4 text-gray-500 dark:text-dark-400">批准后加入这些调度分组，多个 ID 用逗号分隔。</span>
+                        <span class="mt-1 block text-[11px] leading-4 text-gray-500 dark:text-dark-400">{{ groupInputHint(account) }}</span>
                       </label>
                       <label class="block">
                         <span class="text-xs font-medium text-gray-600 dark:text-dark-300">调度优先级</span>
@@ -149,8 +153,10 @@
                 </td>
                 <td class="px-4 py-3 align-top text-right text-sm">
                   <div class="ml-auto grid gap-y-2 whitespace-nowrap text-right">
-                    <button class="justify-self-end font-medium text-green-600 hover:text-green-700" @click="approveAccount(account)">批准</button>
-                    <button class="justify-self-end font-medium text-red-600 hover:text-red-700" @click="rejectAccount(account)">驳回</button>
+                    <template v-if="account.approval_status === 'pending'">
+                      <button class="justify-self-end font-medium text-green-600 hover:text-green-700" @click="approveAccount(account)">批准</button>
+                      <button class="justify-self-end font-medium text-red-600 hover:text-red-700" @click="rejectAccount(account)">驳回</button>
+                    </template>
                     <template v-if="pendingPricing(account.id)">
                       <button class="justify-self-end font-medium text-emerald-600 hover:text-emerald-700" @click="approvePricing(account)">批准报价</button>
                       <button class="justify-self-end font-medium text-rose-600 hover:text-rose-700" @click="rejectPricing(account)">拒绝报价</button>
@@ -187,16 +193,42 @@
         </div>
       </template>
     </BaseDialog>
+
+    <BaseDialog :show="accountActionDialog.show" :title="activeAccountAction.title" @close="closeAccountActionDialog">
+      <div class="space-y-4">
+        <p class="text-sm text-gray-500 dark:text-dark-400">{{ activeAccountAction.description }}</p>
+        <div v-if="accountActionDialog.account" class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700 dark:bg-dark-900/40 dark:text-dark-300">
+          #{{ accountActionDialog.account.id }} {{ accountActionDialog.account.name }}
+        </div>
+        <textarea
+          v-model="accountActionDialog.note"
+          class="input min-h-[120px]"
+          :placeholder="activeAccountAction.placeholder"
+        />
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn btn-secondary" :disabled="accountActionDialog.submitting" @click="closeAccountActionDialog">取消</button>
+          <button
+            class="btn btn-primary"
+            :disabled="accountActionDialog.submitting || accountActionNoteInvalid"
+            @click="submitAccountAction"
+          >
+            {{ accountActionDialog.submitting ? '处理中...' : activeAccountAction.confirmText }}
+          </button>
+        </div>
+      </template>
+    </BaseDialog>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import { adminAPI } from '@/api'
 import { useAppStore } from '@/stores'
-import type { Account } from '@/types'
+import type { Account, AdminGroup } from '@/types'
 import type { SupplierProfile, SupplierStatus } from '@/api'
 import type { SupplierAccountPricingRevision } from '@/api/supplier'
 
@@ -206,10 +238,80 @@ const status = ref<SupplierStatus | ''>('pending')
 const accountStatus = ref<'' | 'pending' | 'approved' | 'rejected' | 'returned'>('pending')
 const accounts = ref<Account[]>([])
 const accountDrafts = reactive<Record<number, { group_ids: string; priority?: number; rate_multiplier?: number }>>({})
+const groups = ref<AdminGroup[]>([])
 const revisionsByAccount = reactive<Record<number, SupplierAccountPricingRevision[]>>({})
 const showRejectProfileDialog = ref(false)
 const rejectProfileId = ref<number | null>(null)
 const rejectProfileReason = ref('')
+
+type AccountActionKind = 'reject-account' | 'return-account' | 'reject-edit-request' | 'approve-pricing' | 'reject-pricing'
+
+interface AccountActionConfig {
+  title: string
+  description: string
+  placeholder: string
+  confirmText: string
+  noteRequired: boolean
+}
+
+const accountActionConfigs: Record<AccountActionKind, AccountActionConfig> = {
+  'reject-account': {
+    title: '驳回供应商账号',
+    description: '填写驳回原因后，这个账号会从待审核列表中移除。',
+    placeholder: '请输入账号驳回原因',
+    confirmText: '确认驳回',
+    noteRequired: true
+  },
+  'return-account': {
+    title: '批准退回修改',
+    description: '供应商将可以重新编辑并提交这个账号。',
+    placeholder: '请输入退回修改备注，可留空',
+    confirmText: '确认退回',
+    noteRequired: false
+  },
+  'reject-edit-request': {
+    title: '驳回退回申请',
+    description: '供应商的退回修改申请会被驳回，账号保持当前状态。',
+    placeholder: '请输入驳回原因，可留空',
+    confirmText: '确认驳回',
+    noteRequired: false
+  },
+  'approve-pricing': {
+    title: '批准供应商报价',
+    description: '批准后报价会按生效时间启用；生效前仍使用原报价计费。',
+    placeholder: '请输入报价审核备注，可留空',
+    confirmText: '批准报价',
+    noteRequired: false
+  },
+  'reject-pricing': {
+    title: '拒绝供应商报价',
+    description: '拒绝后这次报价不会生效，当前价格保持不变。',
+    placeholder: '请输入拒绝原因',
+    confirmText: '拒绝报价',
+    noteRequired: true
+  }
+}
+
+const accountActionDialog = reactive<{
+  show: boolean
+  kind: AccountActionKind | null
+  account: Account | null
+  note: string
+  submitting: boolean
+}>({
+  show: false,
+  kind: null,
+  account: null,
+  note: '',
+  submitting: false
+})
+
+const activeAccountAction = computed<AccountActionConfig>(() => {
+  if (accountActionDialog.kind) return accountActionConfigs[accountActionDialog.kind]
+  return accountActionConfigs['approve-pricing']
+})
+
+const accountActionNoteInvalid = computed(() => activeAccountAction.value.noteRequired && !accountActionDialog.note.trim())
 
 function statusLabel(value: string): string {
   return ({ pending: '待审核', approved: '已通过', rejected: '已驳回', returned: '已退回修改' } as Record<string, string>)[value] || value
@@ -221,16 +323,47 @@ async function loadProfiles() {
 }
 
 async function loadAccounts() {
-  const data = await adminAPI.suppliers.listAccounts(1, 100, accountStatus.value)
-  accounts.value = data.items
-  for (const account of accounts.value) {
-    accountDrafts[account.id] = {
-      group_ids: (account.group_ids || []).join(','),
-      priority: account.priority,
-      rate_multiplier: account.rate_multiplier
+  try {
+    const data = await adminAPI.suppliers.listAccounts(1, 100, accountStatus.value)
+    await loadGroups()
+    for (const account of data.items) {
+      const existingGroupIDs = (account.group_ids || []).join(',')
+      const defaultGroupID = existingGroupIDs || account.approval_status !== 'pending' ? '' : defaultGroupIDForAccount(account)
+      accountDrafts[account.id] = {
+        group_ids: existingGroupIDs || (defaultGroupID ? String(defaultGroupID) : ''),
+        priority: account.priority,
+        rate_multiplier: account.rate_multiplier
+      }
     }
-    revisionsByAccount[account.id] = await adminAPI.suppliers.listPricingRevisions(account.id)
+    accounts.value = data.items
+    await Promise.all(data.items.map(async (account) => {
+      revisionsByAccount[account.id] = await adminAPI.suppliers.listPricingRevisions(account.id)
+    }))
+  } catch (err: any) {
+    appStore.showError(apiErrorMessage(err, '供应商账号加载失败'))
   }
+}
+
+async function loadGroups() {
+  if (groups.value.length > 0) return
+  groups.value = await adminAPI.groups.getAll()
+}
+
+function defaultGroupIDForAccount(account: Account): number | null {
+  const group = groups.value.find((item) => item.platform === account.platform && item.subscription_type === 'standard')
+  return group?.id ?? null
+}
+
+function groupInputHint(account: Account): string {
+  if (account.approval_status !== 'pending') {
+    return '批准后加入这些调度分组，多个 ID 用逗号分隔。'
+  }
+  const defaultGroupID = defaultGroupIDForAccount(account)
+  if (defaultGroupID) {
+    const group = groups.value.find((item) => item.id === defaultGroupID)
+    return `默认按平台归类到 ${group?.name || `#${defaultGroupID}`}（ID: ${defaultGroupID}），可手动修改。`
+  }
+  return '批准后加入这些调度分组，多个 ID 用逗号分隔。'
 }
 
 async function review(id: number, nextStatus: SupplierStatus, reviewNote = '') {
@@ -272,36 +405,30 @@ function parsedGroupIDs(raw: string): number[] {
 
 async function approveAccount(account: Account) {
   const draft = accountDrafts[account.id] || { group_ids: '' }
-  await adminAPI.suppliers.approveAccount(account.id, {
-    group_ids: parsedGroupIDs(draft.group_ids),
-    priority: draft.priority,
-    rate_multiplier: draft.rate_multiplier,
-    schedulable: true
-  })
-  appStore.showSuccess('账号已批准并可进入调度池')
-  await loadAccounts()
+  try {
+    await adminAPI.suppliers.approveAccount(account.id, {
+      group_ids: parsedGroupIDs(draft.group_ids),
+      priority: draft.priority,
+      rate_multiplier: draft.rate_multiplier,
+      schedulable: true
+    })
+    appStore.showSuccess('账号已批准并可进入调度池')
+    await loadAccounts()
+  } catch (err: any) {
+    appStore.showError(apiErrorMessage(err, '账号批准失败'))
+  }
 }
 
-async function rejectAccount(account: Account) {
-  const reason = window.prompt('请输入账号驳回原因') || ''
-  if (!reason.trim()) return
-  await adminAPI.suppliers.rejectAccount(account.id, reason.trim())
-  appStore.showSuccess('账号已驳回')
-  await loadAccounts()
+function rejectAccount(account: Account) {
+  openAccountActionDialog('reject-account', account)
 }
 
-async function returnAccount(account: Account) {
-  const note = window.prompt('请输入批准退回修改备注') || ''
-  await adminAPI.suppliers.returnAccountForEdit(account.id, note.trim())
-  appStore.showSuccess('账号已退回供应商修改')
-  await loadAccounts()
+function returnAccount(account: Account) {
+  openAccountActionDialog('return-account', account)
 }
 
-async function rejectEditRequest(account: Account) {
-  const note = window.prompt('请输入驳回退回申请原因') || ''
-  await adminAPI.suppliers.rejectAccountEditRequest(account.id, note.trim())
-  appStore.showSuccess('退回修改申请已驳回')
-  await loadAccounts()
+function rejectEditRequest(account: Account) {
+  openAccountActionDialog('reject-edit-request', account)
 }
 
 function pendingPricing(accountId: number) {
@@ -309,12 +436,17 @@ function pendingPricing(accountId: number) {
 }
 
 function effectivePricing(accountId: number) {
-  return revisionsByAccount[accountId]?.find(revision => revision.status === 'approved' && revision.effective_at)
+  return revisionsByAccount[accountId]?.find(revision => isRevisionActive(revision))
+}
+
+function scheduledPricing(accountId: number) {
+  return revisionsByAccount[accountId]?.find(revision => isRevisionScheduled(revision))
 }
 
 function pricingLabel(accountId: number) {
   if (pendingPricing(accountId)) return '待审核'
   if (effectivePricing(accountId)) return '已生效'
+  if (scheduledPricing(accountId)) return '待生效'
   if (revisionsByAccount[accountId]?.some(revision => revision.status === 'rejected')) return '已拒绝'
   return '未提交'
 }
@@ -334,28 +466,98 @@ function perTokenToMTok(value?: number | null) {
 function pricingSummary(revision?: SupplierAccountPricingRevision) {
   if (!revision?.pricing?.length) return '-'
   return revision.pricing.map(item => {
-    const model = item.models.join('/')
+    const models = Array.isArray(item.models) ? item.models : []
+    const model = models.length ? models.join('/') : '-'
     return `${model}: 输入 $${perTokenToMTok(item.input_price)}, 输出 $${perTokenToMTok(item.output_price)} / MTok`
   }).join('\n')
 }
 
-async function approvePricing(account: Account) {
-  const revision = pendingPricing(account.id)
-  if (!revision) return
-  const note = window.prompt('请输入报价审核备注，可留空') || ''
-  await adminAPI.suppliers.approvePricingRevision(revision.id, note.trim())
-  appStore.showSuccess('供应商报价已批准并生效')
-  await loadAccounts()
+function isRevisionActive(revision?: SupplierAccountPricingRevision) {
+  if (!revision?.effective_at || revision.status !== 'approved') return false
+  return new Date(revision.effective_at).getTime() <= Date.now()
 }
 
-async function rejectPricing(account: Account) {
-  const revision = pendingPricing(account.id)
-  if (!revision) return
-  const note = window.prompt('请输入拒绝原因') || ''
-  if (!note.trim()) return
-  await adminAPI.suppliers.rejectPricingRevision(revision.id, note.trim())
-  appStore.showSuccess('供应商报价已拒绝')
-  await loadAccounts()
+function isRevisionScheduled(revision?: SupplierAccountPricingRevision) {
+  if (!revision?.effective_at || revision.status !== 'approved') return false
+  return new Date(revision.effective_at).getTime() > Date.now()
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return '-'
+  return new Date(value).toLocaleString()
+}
+
+function approvePricing(account: Account) {
+  openAccountActionDialog('approve-pricing', account)
+}
+
+function rejectPricing(account: Account) {
+  openAccountActionDialog('reject-pricing', account)
+}
+
+function openAccountActionDialog(kind: AccountActionKind, account: Account) {
+  accountActionDialog.kind = kind
+  accountActionDialog.account = account
+  accountActionDialog.note = ''
+  accountActionDialog.show = true
+}
+
+function closeAccountActionDialog() {
+  if (accountActionDialog.submitting) return
+  accountActionDialog.show = false
+  accountActionDialog.kind = null
+  accountActionDialog.account = null
+  accountActionDialog.note = ''
+}
+
+async function submitAccountAction() {
+  const account = accountActionDialog.account
+  const kind = accountActionDialog.kind
+  if (!account || !kind || accountActionNoteInvalid.value) return
+
+  const note = accountActionDialog.note.trim()
+  accountActionDialog.submitting = true
+  try {
+    if (kind === 'reject-account') {
+      await adminAPI.suppliers.rejectAccount(account.id, note)
+      appStore.showSuccess('账号已驳回')
+    } else if (kind === 'return-account') {
+      await adminAPI.suppliers.returnAccountForEdit(account.id, note)
+      appStore.showSuccess('账号已退回供应商修改')
+    } else if (kind === 'reject-edit-request') {
+      await adminAPI.suppliers.rejectAccountEditRequest(account.id, note)
+      appStore.showSuccess('退回修改申请已驳回')
+    } else if (kind === 'approve-pricing') {
+      const revision = pendingPricing(account.id)
+      if (!revision) {
+        appStore.showError('未找到待审核报价')
+        return
+      }
+      await adminAPI.suppliers.approvePricingRevision(revision.id, note)
+      appStore.showSuccess('供应商报价已批准，将按生效时间启用')
+    } else if (kind === 'reject-pricing') {
+      const revision = pendingPricing(account.id)
+      if (!revision) {
+        appStore.showError('未找到待审核报价')
+        return
+      }
+      await adminAPI.suppliers.rejectPricingRevision(revision.id, note)
+      appStore.showSuccess('供应商报价已拒绝')
+    }
+    accountActionDialog.show = false
+    accountActionDialog.kind = null
+    accountActionDialog.account = null
+    accountActionDialog.note = ''
+    await loadAccounts()
+  } catch (err: any) {
+    appStore.showError(apiErrorMessage(err, '操作失败'))
+  } finally {
+    accountActionDialog.submitting = false
+  }
+}
+
+function apiErrorMessage(err: any, fallback: string) {
+  return err?.response?.data?.message || err?.response?.data?.detail || err?.message || fallback
 }
 
 onMounted(() => {

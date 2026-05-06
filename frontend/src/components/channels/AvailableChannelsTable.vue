@@ -45,7 +45,15 @@
             :rowspan="channel.platforms.length"
             class="px-4 py-3 text-center align-middle font-medium text-gray-900 dark:text-white"
           >
-            {{ channel.name }}
+            <div class="flex flex-col items-center gap-1">
+              <span>{{ channel.name }}</span>
+              <span
+                v-if="channel.source === 'supplier_account'"
+                class="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+              >
+                {{ t('availableChannels.source.supplier') }}
+              </span>
+            </div>
           </td>
 
           <!-- 描述：独立一列，同样用 rowspan 纵向合并 -->

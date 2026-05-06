@@ -26,13 +26,14 @@ import (
 )
 
 var (
-	ErrSupplierProfileNotFound = infraerrors.NotFound("SUPPLIER_PROFILE_NOT_FOUND", "supplier profile not found")
-	ErrSupplierProfileExists   = infraerrors.Conflict("SUPPLIER_PROFILE_EXISTS", "supplier profile already exists")
-	ErrSupplierInvalidStatus   = infraerrors.BadRequest("SUPPLIER_INVALID_STATUS", "invalid supplier status")
-	ErrSupplierAccountDenied   = infraerrors.Forbidden("SUPPLIER_ACCOUNT_DENIED", "supplier account access denied")
-	ErrSupplierAccountInvalid  = infraerrors.BadRequest("SUPPLIER_ACCOUNT_INVALID", "invalid supplier account")
-	ErrSupplierPricingNotFound = infraerrors.NotFound("SUPPLIER_PRICING_NOT_FOUND", "supplier pricing revision not found")
-	ErrSupplierPricingInvalid  = infraerrors.BadRequest("SUPPLIER_PRICING_INVALID", "invalid supplier pricing")
+	ErrSupplierProfileNotFound     = infraerrors.NotFound("SUPPLIER_PROFILE_NOT_FOUND", "supplier profile not found")
+	ErrSupplierProfileExists       = infraerrors.Conflict("SUPPLIER_PROFILE_EXISTS", "supplier profile already exists")
+	ErrSupplierInvalidStatus       = infraerrors.BadRequest("SUPPLIER_INVALID_STATUS", "invalid supplier status")
+	ErrSupplierAccountDenied       = infraerrors.Forbidden("SUPPLIER_ACCOUNT_DENIED", "supplier account access denied")
+	ErrSupplierAccountInvalid      = infraerrors.BadRequest("SUPPLIER_ACCOUNT_INVALID", "invalid supplier account")
+	ErrSupplierDefaultGroupMissing = infraerrors.BadRequest("SUPPLIER_DEFAULT_GROUP_MISSING", "未找到对应平台的活跃分组")
+	ErrSupplierPricingNotFound     = infraerrors.NotFound("SUPPLIER_PRICING_NOT_FOUND", "supplier pricing revision not found")
+	ErrSupplierPricingInvalid      = infraerrors.BadRequest("SUPPLIER_PRICING_INVALID", "invalid supplier pricing")
 )
 
 type SupplierProfile struct {
@@ -211,10 +212,13 @@ type SupplierRepository interface {
 	ListRecentUsage(ctx context.Context, supplierID int64, params pagination.PaginationParams, startTime, endTime time.Time) ([]UsageLog, *pagination.PaginationResult, error)
 	CreatePricingRevision(ctx context.Context, revision *SupplierAccountPricingRevision) error
 	ListPricingRevisions(ctx context.Context, accountID int64) ([]SupplierAccountPricingRevision, error)
+	GetPricingRevisionByID(ctx context.Context, revisionID int64) (*SupplierAccountPricingRevision, error)
 	GetPendingPricingRevision(ctx context.Context, accountID int64) (*SupplierAccountPricingRevision, error)
-	GetEffectivePricingRevision(ctx context.Context, accountID int64) (*SupplierAccountPricingRevision, error)
+	GetEffectivePricingRevisionAt(ctx context.Context, accountID int64, at time.Time) (*SupplierAccountPricingRevision, error)
+	ListApprovedPricingRevisionsForAccounts(ctx context.Context, accountIDs []int64) (map[int64][]SupplierAccountPricingRevision, error)
 	GetLatestPricingRevisionBySupplierAndKind(ctx context.Context, supplierID int64, kind string, since time.Time) (*SupplierAccountPricingRevision, error)
-	ReviewPricingRevision(ctx context.Context, revisionID int64, status string, reviewerID int64, reviewNote string, effective bool) (*SupplierAccountPricingRevision, error)
+	CountPricingRevisionsBySupplierAndKindSince(ctx context.Context, supplierID int64, kind string, since time.Time) (int, error)
+	ReviewPricingRevision(ctx context.Context, revisionID int64, status string, reviewerID int64, reviewNote string, effectiveAt *time.Time) (*SupplierAccountPricingRevision, error)
 }
 
 type SupplierAccountRepository interface {
@@ -1102,8 +1106,14 @@ func (s *SupplierService) ApproveAccount(ctx context.Context, accountID int64, r
 	if account.OwnerType != AccountOwnerTypeSupplier || account.SupplierID == nil {
 		return nil, infraerrors.BadRequest("SUPPLIER_ACCOUNT_REQUIRED", "account is not a supplier account")
 	}
-	if len(input.GroupIDs) > 0 {
-		if err := validateSupplierGroupIDs(ctx, s.groupRepo, input.GroupIDs); err != nil {
+	groupIDs := input.GroupIDs
+	if len(groupIDs) > 0 {
+		if err := validateSupplierGroupIDs(ctx, s.groupRepo, groupIDs); err != nil {
+			return nil, err
+		}
+	} else {
+		groupIDs, err = defaultSupplierGroupIDs(ctx, s.groupRepo, account.Platform)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -1129,16 +1139,16 @@ func (s *SupplierService) ApproveAccount(ctx context.Context, accountID int64, r
 	if input.Schedulable != nil {
 		account.Schedulable = *input.Schedulable
 	}
-	account.GroupIDs = input.GroupIDs
+	account.GroupIDs = groupIDs
 	if err := s.accountRepo.Update(ctx, account); err != nil {
 		return nil, err
 	}
-	if len(input.GroupIDs) > 0 {
-		if err := s.accountRepo.BindGroups(ctx, account.ID, input.GroupIDs); err != nil {
+	if len(groupIDs) > 0 {
+		if err := s.accountRepo.BindGroups(ctx, account.ID, groupIDs); err != nil {
 			return nil, err
 		}
 	}
-	if _, err := s.supplierRepo.ReviewPricingRevision(ctx, pendingPricing.ID, SupplierPricingRevisionStatusApproved, reviewerID, "", true); err != nil {
+	if _, err := s.supplierRepo.ReviewPricingRevision(ctx, pendingPricing.ID, SupplierPricingRevisionStatusApproved, reviewerID, "", &now); err != nil {
 		return nil, err
 	}
 	return account, nil
@@ -1162,7 +1172,7 @@ func (s *SupplierService) RejectAccount(ctx context.Context, accountID int64, re
 		return nil, err
 	}
 	if pendingPricing, err := s.supplierRepo.GetPendingPricingRevision(ctx, account.ID); err == nil && pendingPricing != nil {
-		if _, reviewErr := s.supplierRepo.ReviewPricingRevision(ctx, pendingPricing.ID, SupplierPricingRevisionStatusRejected, reviewerID, strings.TrimSpace(reason), false); reviewErr != nil {
+		if _, reviewErr := s.supplierRepo.ReviewPricingRevision(ctx, pendingPricing.ID, SupplierPricingRevisionStatusRejected, reviewerID, strings.TrimSpace(reason), nil); reviewErr != nil {
 			return nil, reviewErr
 		}
 	} else if err != nil && !isSupplierPricingNotFound(err) {
@@ -1304,7 +1314,7 @@ func (s *SupplierService) SubmitPricingChange(ctx context.Context, userID int64,
 	if account.ApprovalStatus != AccountApprovalStatusApproved {
 		return nil, infraerrors.BadRequest("SUPPLIER_ACCOUNT_NOT_APPROVED", "pricing changes require an approved account")
 	}
-	if err := s.ensureSupplierPricingChangeWindow(ctx, profile.ID); err != nil {
+	if err := s.ensureSupplierPricingChangeDailyLimit(ctx, profile.ID); err != nil {
 		return nil, err
 	}
 	if pending, err := s.supplierRepo.GetPendingPricingRevision(ctx, accountID); err == nil && pending != nil {
@@ -1330,24 +1340,34 @@ func (s *SupplierService) SubmitPricingChange(ctx context.Context, userID int64,
 	return revision, nil
 }
 
-func (s *SupplierService) ensureSupplierPricingChangeWindow(ctx context.Context, supplierID int64) error {
+func (s *SupplierService) ensureSupplierPricingChangeDailyLimit(ctx context.Context, supplierID int64) error {
 	now := timezone.Now()
-	windowStart := time.Date(now.Year(), now.Month(), now.Day(), 7, 0, 0, 0, timezone.Location())
-	windowEnd := time.Date(now.Year(), now.Month(), now.Day(), 7, 30, 0, 0, timezone.Location())
-	if now.Before(windowStart) || !now.Before(windowEnd) {
-		return infraerrors.Forbidden("SUPPLIER_PRICING_CHANGE_WINDOW_CLOSED", "pricing changes are only allowed between 07:00 and 07:30")
-	}
-	latest, err := s.supplierRepo.GetLatestPricingRevisionBySupplierAndKind(ctx, supplierID, SupplierPricingRevisionKindChange, timezone.StartOfDay(now))
+	count, err := s.supplierRepo.CountPricingRevisionsBySupplierAndKindSince(ctx, supplierID, SupplierPricingRevisionKindChange, timezone.StartOfDay(now))
 	if err != nil {
-		if isSupplierPricingNotFound(err) {
-			return nil
-		}
 		return err
 	}
-	if latest != nil {
-		return infraerrors.Forbidden("SUPPLIER_PRICING_CHANGE_DAILY_LIMIT", "only one pricing change is allowed per day")
+	if count >= 3 {
+		return infraerrors.Forbidden("SUPPLIER_PRICING_CHANGE_DAILY_LIMIT", "pricing changes are limited to three times per day")
 	}
 	return nil
+}
+
+func supplierPricingChangeEffectiveAt(submittedAt time.Time) time.Time {
+	loc := timezone.Location()
+	submittedAt = submittedAt.In(loc)
+	sameDay := time.Date(submittedAt.Year(), submittedAt.Month(), submittedAt.Day(), 7, 30, 0, 0, loc)
+	if submittedAt.Before(sameDay) {
+		return sameDay
+	}
+	return sameDay.AddDate(0, 0, 1)
+}
+
+func supplierPricingChangeApprovedEffectiveAt(submittedAt time.Time, approvedAt time.Time) time.Time {
+	scheduledAt := supplierPricingChangeEffectiveAt(submittedAt)
+	if approvedAt.After(scheduledAt) {
+		return approvedAt
+	}
+	return scheduledAt
 }
 
 func (s *SupplierService) ListAccountPricingRevisions(ctx context.Context, accountID int64) ([]SupplierAccountPricingRevision, error) {
@@ -1362,11 +1382,19 @@ func (s *SupplierService) ListAccountPricingRevisions(ctx context.Context, accou
 }
 
 func (s *SupplierService) ApprovePricingRevision(ctx context.Context, revisionID int64, reviewerID int64, reviewNote string) (*SupplierAccountPricingRevision, error) {
-	return s.supplierRepo.ReviewPricingRevision(ctx, revisionID, SupplierPricingRevisionStatusApproved, reviewerID, strings.TrimSpace(reviewNote), true)
+	revision, err := s.supplierRepo.GetPricingRevisionByID(ctx, revisionID)
+	if err != nil {
+		return nil, err
+	}
+	effectiveAt := time.Now()
+	if revision.RevisionKind == SupplierPricingRevisionKindChange {
+		effectiveAt = supplierPricingChangeApprovedEffectiveAt(revision.CreatedAt, effectiveAt)
+	}
+	return s.supplierRepo.ReviewPricingRevision(ctx, revisionID, SupplierPricingRevisionStatusApproved, reviewerID, strings.TrimSpace(reviewNote), &effectiveAt)
 }
 
 func (s *SupplierService) RejectPricingRevision(ctx context.Context, revisionID int64, reviewerID int64, reviewNote string) (*SupplierAccountPricingRevision, error) {
-	return s.supplierRepo.ReviewPricingRevision(ctx, revisionID, SupplierPricingRevisionStatusRejected, reviewerID, strings.TrimSpace(reviewNote), false)
+	return s.supplierRepo.ReviewPricingRevision(ctx, revisionID, SupplierPricingRevisionStatusRejected, reviewerID, strings.TrimSpace(reviewNote), nil)
 }
 
 func (s *SupplierService) GetModelDefaultPricing(model string) (*ChannelModelPricing, error) {
@@ -1410,6 +1438,19 @@ func (s *SupplierService) getOwnedSupplierAccount(ctx context.Context, userID in
 func floatPtr(value float64) *float64 {
 	v := value
 	return &v
+}
+
+func defaultSupplierGroupIDs(ctx context.Context, groupRepo GroupRepository, platform string) ([]int64, error) {
+	groups, err := groupRepo.ListActiveByPlatform(ctx, platform)
+	if err != nil {
+		return nil, err
+	}
+	for _, group := range groups {
+		if group.SubscriptionType == SubscriptionTypeStandard {
+			return []int64{group.ID}, nil
+		}
+	}
+	return nil, ErrSupplierDefaultGroupMissing
 }
 
 func validateSupplierGroupIDs(ctx context.Context, groupRepo GroupRepository, ids []int64) error {

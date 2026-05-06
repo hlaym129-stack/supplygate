@@ -44,6 +44,9 @@ export interface UserSupportedModel {
   name: string
   platform: string
   pricing: UserSupportedModelPricing | null
+  pricing_effective_at?: string | null
+  scheduled_pricing?: UserSupportedModelPricing | null
+  scheduled_effective_at?: string | null
 }
 
 /**
@@ -57,9 +60,12 @@ export interface UserChannelPlatformSection {
   supported_models: UserSupportedModel[]
 }
 
+export type UserAvailableChannelSource = 'configured' | 'supplier_account'
+
 export interface UserAvailableChannel {
   name: string
   description: string
+  source?: UserAvailableChannelSource
   platforms: UserChannelPlatformSection[]
 }
 

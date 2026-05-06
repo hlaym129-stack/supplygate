@@ -71,6 +71,7 @@ var ProviderSet = wire.NewSet(
 	NewAccountRepository,
 	wire.Bind(new(service.AccountRepository), new(*accountRepository)),
 	wire.Bind(new(service.SupplierAccountRepository), new(*accountRepository)),
+	wire.Bind(new(service.SupplierAvailableAccountRepository), new(*accountRepository)),
 	NewScheduledTestPlanRepository,   // 定时测试计划仓储
 	NewScheduledTestResultRepository, // 定时测试结果仓储
 	NewProxyRepository,

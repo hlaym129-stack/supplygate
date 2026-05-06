@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"strings"
+	"time"
 )
 
 // resolveAccountStatsCost 计算账号统计定价费用。
@@ -233,7 +234,7 @@ func applyAccountStatsCost(
 		model = requestedModel
 	}
 	if account != nil && account.OwnerType == AccountOwnerTypeSupplier {
-		if cost := resolveSupplierSettlementCost(ctx, supplierRepo, accountID, account.Platform, model, tokens, 1); cost != nil {
+		if cost := resolveSupplierSettlementCost(ctx, supplierRepo, accountID, account.Platform, model, usageLog.CreatedAt, tokens, 1); cost != nil {
 			usageLog.AccountStatsCost = cost
 			return
 		}
@@ -243,11 +244,14 @@ func applyAccountStatsCost(
 	)
 }
 
-func resolveSupplierSettlementCost(ctx context.Context, supplierRepo SupplierRepository, accountID int64, platform, model string, tokens UsageTokens, requestCount int) *float64 {
+func resolveSupplierSettlementCost(ctx context.Context, supplierRepo SupplierRepository, accountID int64, platform, model string, occurredAt time.Time, tokens UsageTokens, requestCount int) *float64 {
 	if supplierRepo == nil || accountID <= 0 || strings.TrimSpace(model) == "" {
 		return nil
 	}
-	revision, err := supplierRepo.GetEffectivePricingRevision(ctx, accountID)
+	if occurredAt.IsZero() {
+		occurredAt = time.Now()
+	}
+	revision, err := supplierRepo.GetEffectivePricingRevisionAt(ctx, accountID, occurredAt)
 	if err != nil || revision == nil {
 		return nil
 	}

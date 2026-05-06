@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
@@ -69,13 +70,42 @@ func (s *stubGroupRepoForAvailable) UpdateSortOrders(ctx context.Context, update
 	return nil
 }
 
+type stubSupplierAvailableAccountRepo struct {
+	accounts []Account
+	err      error
+}
+
+func (s *stubSupplierAvailableAccountRepo) ListAvailableSupplierAccounts(ctx context.Context) ([]Account, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.accounts, nil
+}
+
+type stubSupplierRepoForAvailable struct {
+	SupplierRepository
+	revisions map[int64][]SupplierAccountPricingRevision
+	err       error
+}
+
+func (s *stubSupplierRepoForAvailable) ListApprovedPricingRevisionsForAccounts(ctx context.Context, accountIDs []int64) (map[int64][]SupplierAccountPricingRevision, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	out := make(map[int64][]SupplierAccountPricingRevision, len(accountIDs))
+	for _, id := range accountIDs {
+		out[id] = append(out[id], s.revisions[id]...)
+	}
+	return out, nil
+}
+
 // newAvailableChannelService 构造一个 ChannelService，channelRepo.ListAll 返回给定 channels，
 // groupRepo 由参数决定。传入空 stub 表示「活跃分组列表为空」。
 func newAvailableChannelService(channels []Channel, groupRepo GroupRepository) *ChannelService {
 	repo := &mockChannelRepository{
 		listAllFn: func(ctx context.Context) ([]Channel, error) { return channels, nil },
 	}
-	return NewChannelService(repo, groupRepo, nil, nil)
+	return NewChannelService(repo, groupRepo, nil, nil, nil, nil)
 }
 
 func TestListAvailable_EmptyActiveGroups_NoGroupsAttached(t *testing.T) {
@@ -134,7 +164,7 @@ func TestListAvailable_ListAllErrorPropagates(t *testing.T) {
 		listAllFn: func(ctx context.Context) ([]Channel, error) { return nil, sentinel },
 	}
 	groupRepo := &stubGroupRepoForAvailable{}
-	svc := NewChannelService(repo, groupRepo, nil, nil)
+	svc := NewChannelService(repo, groupRepo, nil, nil, nil, nil)
 	out, err := svc.ListAvailable(context.Background())
 	require.Nil(t, out)
 	require.ErrorIs(t, err, sentinel)
@@ -174,4 +204,191 @@ func TestListAvailable_DefaultsEmptyBillingModelSource(t *testing.T) {
 	}
 	require.Equal(t, BillingModelSourceChannelMapped, byName["empty"])
 	require.Equal(t, BillingModelSourceUpstream, byName["explicit"])
+}
+
+func TestListAvailable_AppendsSupplierAccountChannelWithCurrentAndScheduledPricing(t *testing.T) {
+	now := time.Now()
+	currentAt := now.Add(-time.Hour)
+	scheduledAt := now.Add(time.Hour)
+	repo := &mockChannelRepository{
+		listAllFn: func(ctx context.Context) ([]Channel, error) { return nil, nil },
+	}
+	svc := NewChannelService(
+		repo,
+		&stubGroupRepoForAvailable{activeGroups: []Group{{
+			ID:               10,
+			Name:             "openai-users",
+			Platform:         PlatformOpenAI,
+			SubscriptionType: "standard",
+			RateMultiplier:   1.2,
+			IsExclusive:      true,
+		}}},
+		&stubSupplierAvailableAccountRepo{accounts: []Account{{
+			ID:             100,
+			Name:           "账号A",
+			Platform:       PlatformOpenAI,
+			Status:         StatusActive,
+			OwnerType:      AccountOwnerTypeSupplier,
+			ApprovalStatus: AccountApprovalStatusApproved,
+			Schedulable:    true,
+			GroupIDs:       []int64{10},
+			Supplier:       &SupplierProfile{CompanyName: "供应商A"},
+		}}},
+		&stubSupplierRepoForAvailable{revisions: map[int64][]SupplierAccountPricingRevision{
+			100: {
+				{
+					ID:          1,
+					Status:      SupplierPricingRevisionStatusApproved,
+					EffectiveAt: &currentAt,
+					Pricing: []ChannelModelPricing{{
+						Platform:    PlatformOpenAI,
+						Models:      []string{"gpt-5.4-mini"},
+						BillingMode: BillingModeToken,
+						InputPrice:  testPtrFloat64(0.75e-6),
+						OutputPrice: testPtrFloat64(4.6e-6),
+					}},
+				},
+				{
+					ID:          2,
+					Status:      SupplierPricingRevisionStatusApproved,
+					EffectiveAt: &scheduledAt,
+					Pricing: []ChannelModelPricing{{
+						Platform:    PlatformOpenAI,
+						Models:      []string{"gpt-5.4-mini"},
+						BillingMode: BillingModeToken,
+						InputPrice:  testPtrFloat64(0.8e-6),
+						OutputPrice: testPtrFloat64(4.9e-6),
+					}},
+				},
+			},
+		}},
+		nil,
+		nil,
+	)
+
+	out, err := svc.ListAvailable(context.Background())
+	require.NoError(t, err)
+	require.Len(t, out, 1)
+	ch := out[0]
+	require.Equal(t, AvailableChannelSourceSupplierAccount, ch.Source)
+	require.Equal(t, "供应商：供应商A / 账号A", ch.Name)
+	require.Len(t, ch.Groups, 1)
+	require.Equal(t, int64(10), ch.Groups[0].ID)
+	require.Len(t, ch.SupportedModels, 1)
+	model := ch.SupportedModels[0]
+	require.Equal(t, "gpt-5.4-mini", model.Name)
+	require.NotNil(t, model.Pricing)
+	require.NotNil(t, model.ScheduledPricing)
+	require.Equal(t, currentAt, *model.PricingEffectiveAt)
+	require.Equal(t, scheduledAt, *model.ScheduledEffectiveAt)
+	require.Equal(t, 0.75e-6, *model.Pricing.InputPrice)
+	require.Equal(t, 0.8e-6, *model.ScheduledPricing.InputPrice)
+}
+
+func TestListAvailable_SupplierAccountsRequireCurrentApprovedPricingAndActiveGroups(t *testing.T) {
+	now := time.Now()
+	futureAt := now.Add(time.Hour)
+	pastAt := now.Add(-time.Hour)
+	repo := &mockChannelRepository{
+		listAllFn: func(ctx context.Context) ([]Channel, error) { return nil, nil },
+	}
+	accounts := []Account{
+		{
+			ID:             100,
+			Name:           "future-only",
+			Platform:       PlatformOpenAI,
+			Status:         StatusActive,
+			OwnerType:      AccountOwnerTypeSupplier,
+			ApprovalStatus: AccountApprovalStatusApproved,
+			Schedulable:    true,
+			GroupIDs:       []int64{10},
+		},
+		{
+			ID:             101,
+			Name:           "inactive-group",
+			Platform:       PlatformOpenAI,
+			Status:         StatusActive,
+			OwnerType:      AccountOwnerTypeSupplier,
+			ApprovalStatus: AccountApprovalStatusApproved,
+			Schedulable:    true,
+			GroupIDs:       []int64{99},
+		},
+		{
+			ID:             102,
+			Name:           "not-schedulable",
+			Platform:       PlatformOpenAI,
+			Status:         StatusActive,
+			OwnerType:      AccountOwnerTypeSupplier,
+			ApprovalStatus: AccountApprovalStatusApproved,
+			Schedulable:    false,
+			GroupIDs:       []int64{10},
+		},
+	}
+	svc := NewChannelService(
+		repo,
+		&stubGroupRepoForAvailable{activeGroups: []Group{{ID: 10, Name: "openai-users", Platform: PlatformOpenAI}}},
+		&stubSupplierAvailableAccountRepo{accounts: accounts},
+		&stubSupplierRepoForAvailable{revisions: map[int64][]SupplierAccountPricingRevision{
+			100: {{ID: 1, Status: SupplierPricingRevisionStatusApproved, EffectiveAt: &futureAt, Pricing: supplierAvailablePricing(PlatformOpenAI, "gpt-a", 1e-6)}},
+			101: {{ID: 2, Status: SupplierPricingRevisionStatusApproved, EffectiveAt: &pastAt, Pricing: supplierAvailablePricing(PlatformOpenAI, "gpt-b", 1e-6)}},
+			102: {{ID: 3, Status: SupplierPricingRevisionStatusApproved, EffectiveAt: &pastAt, Pricing: supplierAvailablePricing(PlatformOpenAI, "gpt-c", 1e-6)}},
+		}},
+		nil,
+		nil,
+	)
+
+	out, err := svc.ListAvailable(context.Background())
+	require.NoError(t, err)
+	require.Empty(t, out)
+}
+
+func TestListAvailable_SupplierScheduledPricingChoosesNearestThenHighestID(t *testing.T) {
+	now := time.Now()
+	currentAt := now.Add(-time.Hour)
+	nearFuture := now.Add(time.Hour)
+	laterFuture := now.Add(2 * time.Hour)
+	repo := &mockChannelRepository{
+		listAllFn: func(ctx context.Context) ([]Channel, error) { return nil, nil },
+	}
+	svc := NewChannelService(
+		repo,
+		&stubGroupRepoForAvailable{activeGroups: []Group{{ID: 10, Name: "openai-users", Platform: PlatformOpenAI}}},
+		&stubSupplierAvailableAccountRepo{accounts: []Account{{
+			ID:             100,
+			Name:           "acc",
+			Platform:       PlatformOpenAI,
+			Status:         StatusActive,
+			OwnerType:      AccountOwnerTypeSupplier,
+			ApprovalStatus: AccountApprovalStatusApproved,
+			Schedulable:    true,
+			GroupIDs:       []int64{10},
+		}}},
+		&stubSupplierRepoForAvailable{revisions: map[int64][]SupplierAccountPricingRevision{
+			100: {
+				{ID: 1, Status: SupplierPricingRevisionStatusApproved, EffectiveAt: &currentAt, Pricing: supplierAvailablePricing(PlatformOpenAI, "gpt-a", 1e-6)},
+				{ID: 2, Status: SupplierPricingRevisionStatusApproved, EffectiveAt: &nearFuture, Pricing: supplierAvailablePricing(PlatformOpenAI, "gpt-a", 2e-6)},
+				{ID: 3, Status: SupplierPricingRevisionStatusApproved, EffectiveAt: &laterFuture, Pricing: supplierAvailablePricing(PlatformOpenAI, "gpt-a", 3e-6)},
+				{ID: 4, Status: SupplierPricingRevisionStatusApproved, EffectiveAt: &nearFuture, Pricing: supplierAvailablePricing(PlatformOpenAI, "gpt-a", 4e-6)},
+			},
+		}},
+		nil,
+		nil,
+	)
+
+	out, err := svc.ListAvailable(context.Background())
+	require.NoError(t, err)
+	require.Len(t, out, 1)
+	require.Len(t, out[0].SupportedModels, 1)
+	require.NotNil(t, out[0].SupportedModels[0].ScheduledPricing)
+	require.Equal(t, 4e-6, *out[0].SupportedModels[0].ScheduledPricing.InputPrice)
+	require.Equal(t, nearFuture, *out[0].SupportedModels[0].ScheduledEffectiveAt)
+}
+
+func supplierAvailablePricing(platform, model string, input float64) []ChannelModelPricing {
+	return []ChannelModelPricing{{
+		Platform:    platform,
+		Models:      []string{model},
+		BillingMode: BillingModeToken,
+		InputPrice:  testPtrFloat64(input),
+	}}
 }

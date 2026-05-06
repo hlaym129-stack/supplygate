@@ -222,6 +222,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/available-channels/detail',
+    name: 'UserAvailableChannelDetail',
+    component: () => import('@/views/user/AvailableChannelDetailView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Available Channel Detail',
+      titleKey: 'availableChannels.detailTitle',
+      descriptionKey: 'availableChannels.description'
+    }
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/user/ProfileView.vue'),
@@ -354,6 +366,30 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       requiresSupplier: true,
       title: 'Supplier Accounts'
+    }
+  },
+  {
+    path: '/supplier/available-channels',
+    name: 'SupplierAvailableChannels',
+    component: () => import('@/views/user/AvailableChannelsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresSupplier: true,
+      title: 'Available Channels',
+      titleKey: 'availableChannels.title',
+      descriptionKey: 'availableChannels.description'
+    }
+  },
+  {
+    path: '/supplier/available-channels/detail',
+    name: 'SupplierAvailableChannelDetail',
+    component: () => import('@/views/user/AvailableChannelDetailView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresSupplier: true,
+      title: 'Available Channel Detail',
+      titleKey: 'availableChannels.detailTitle',
+      descriptionKey: 'availableChannels.description'
     }
   },
   {

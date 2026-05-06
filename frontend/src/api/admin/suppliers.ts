@@ -1,6 +1,12 @@
 import { apiClient } from '../client'
 import type { Account, ChannelModelPricing, PaginatedResponse } from '@/types'
-import type { SupplierAccountPricingRevision, SupplierProfile, SupplierStatus } from '../supplier'
+import {
+  normalizeSupplierPricingRevision,
+  normalizeSupplierPricingRevisions,
+  type SupplierAccountPricingRevision,
+  type SupplierProfile,
+  type SupplierStatus
+} from '../supplier'
 
 export interface SupplierAccountApprovalInput {
   group_ids?: number[]
@@ -60,21 +66,21 @@ export const suppliersAPI = {
 
   async listPricingRevisions(accountId: number): Promise<SupplierAccountPricingRevision[]> {
     const { data } = await apiClient.get<SupplierAccountPricingRevision[]>(`/admin/supplier-accounts/${accountId}/pricing-revisions`)
-    return data
+    return normalizeSupplierPricingRevisions(data)
   },
 
   async approvePricingRevision(revisionId: number, reviewNote = ''): Promise<SupplierAccountPricingRevision> {
     const { data } = await apiClient.post<SupplierAccountPricingRevision>(`/admin/supplier-account-pricing-revisions/${revisionId}/approve`, {
       review_note: reviewNote
     })
-    return data
+    return normalizeSupplierPricingRevision(data)
   },
 
   async rejectPricingRevision(revisionId: number, reviewNote = ''): Promise<SupplierAccountPricingRevision> {
     const { data } = await apiClient.post<SupplierAccountPricingRevision>(`/admin/supplier-account-pricing-revisions/${revisionId}/reject`, {
       review_note: reviewNote
     })
-    return data
+    return normalizeSupplierPricingRevision(data)
   }
 }
 

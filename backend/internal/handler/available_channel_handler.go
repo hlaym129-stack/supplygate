@@ -2,6 +2,7 @@ package handler
 
 import (
 	"sort"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -87,9 +88,12 @@ type userPricingIntervalDTO struct {
 
 // userSupportedModel 用户可见的支持模型条目。
 type userSupportedModel struct {
-	Name     string                     `json:"name"`
-	Platform string                     `json:"platform"`
-	Pricing  *userSupportedModelPricing `json:"pricing"`
+	Name                 string                     `json:"name"`
+	Platform             string                     `json:"platform"`
+	Pricing              *userSupportedModelPricing `json:"pricing"`
+	PricingEffectiveAt   *time.Time                 `json:"pricing_effective_at,omitempty"`
+	ScheduledPricing     *userSupportedModelPricing `json:"scheduled_pricing,omitempty"`
+	ScheduledEffectiveAt *time.Time                 `json:"scheduled_effective_at,omitempty"`
 }
 
 // userChannelPlatformSection 单渠道内某个平台的子视图：用户可见的分组 + 该平台
@@ -108,6 +112,7 @@ type userChannelPlatformSection struct {
 type userAvailableChannel struct {
 	Name        string                       `json:"name"`
 	Description string                       `json:"description"`
+	Source      string                       `json:"source"`
 	Platforms   []userChannelPlatformSection `json:"platforms"`
 }
 
@@ -159,6 +164,7 @@ func (h *AvailableChannelHandler) List(c *gin.Context) {
 		out = append(out, userAvailableChannel{
 			Name:        ch.Name,
 			Description: ch.Description,
+			Source:      userChannelSource(ch.Source),
 			Platforms:   sections,
 		})
 	}
@@ -240,12 +246,22 @@ func toUserSupportedModels(
 			}
 		}
 		out = append(out, userSupportedModel{
-			Name:     m.Name,
-			Platform: m.Platform,
-			Pricing:  toUserPricing(m.Pricing),
+			Name:                 m.Name,
+			Platform:             m.Platform,
+			Pricing:              toUserPricing(m.Pricing),
+			PricingEffectiveAt:   m.PricingEffectiveAt,
+			ScheduledPricing:     toUserPricing(m.ScheduledPricing),
+			ScheduledEffectiveAt: m.ScheduledEffectiveAt,
 		})
 	}
 	return out
+}
+
+func userChannelSource(source string) string {
+	if source == "" {
+		return service.AvailableChannelSourceConfigured
+	}
+	return source
 }
 
 // toUserPricing 将 service 层定价转换为用户 DTO；入参为 nil 时返回 nil。

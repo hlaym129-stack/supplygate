@@ -553,7 +553,7 @@ get_current_version() {
 # Download and extract
 download_and_extract() {
     local version_num=${LATEST_VERSION#v}
-    local archive_name="sub2api_${version_num}_${OS}_${ARCH}.tar.gz"
+    local archive_name="supplygate_${version_num}_${OS}_${ARCH}.tar.gz"
     local download_url="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/${archive_name}"
     local checksum_url="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/checksums.txt"
 
@@ -564,9 +564,16 @@ download_and_extract() {
     trap "rm -rf $TEMP_DIR" EXIT
 
     # Download archive
-    if ! curl -sL "$download_url" -o "$TEMP_DIR/$archive_name"; then
-        print_error "$(msg 'download_failed')"
-        exit 1
+    if ! curl -fsL "$download_url" -o "$TEMP_DIR/$archive_name"; then
+        local legacy_archive_name="sub2api_${version_num}_${OS}_${ARCH}.tar.gz"
+        local legacy_download_url="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_VERSION}/${legacy_archive_name}"
+        print_warning "$(msg 'download_failed'): ${archive_name}"
+        print_info "$(msg 'downloading') ${legacy_archive_name}..."
+        if ! curl -fsL "$legacy_download_url" -o "$TEMP_DIR/$legacy_archive_name"; then
+            print_error "$(msg 'download_failed')"
+            exit 1
+        fi
+        archive_name="$legacy_archive_name"
     fi
 
     # Download and verify checksum
@@ -682,6 +689,7 @@ ReadWritePaths=/opt/sub2api
 Environment=GIN_MODE=release
 Environment=SERVER_HOST=${SERVER_HOST}
 Environment=SERVER_PORT=${SERVER_PORT}
+Environment=UPDATE_GITHUB_REPO=${GITHUB_REPO}
 
 [Install]
 WantedBy=multi-user.target

@@ -66,7 +66,10 @@ describe('PendingOAuthCreateAccountForm', () => {
         {
           email: 'user@example.com',
           password: 'secret-123',
-          verifyCode: '246810'
+          verifyCode: '246810',
+          invitationCode: undefined,
+          accountType: 'user',
+          supplierProfile: undefined
         }
       ]
     ])
@@ -113,7 +116,9 @@ describe('PendingOAuthCreateAccountForm', () => {
           email: 'prefill@example.com',
           password: 'secret-123',
           verifyCode: '246810',
-          invitationCode: 'INVITE123'
+          invitationCode: 'INVITE123',
+          accountType: 'user',
+          supplierProfile: undefined
         }
       ]
     ])

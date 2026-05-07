@@ -406,9 +406,6 @@ func (s *SupplierService) TestSupplierAccount(c *gin.Context, userID int64, inpu
 	expiresAt := now.Add(supplierTestTokenTTL)
 	operation := "create"
 	accountID := int64(0)
-	if input.SupplierAccountInput.TestToken != "" {
-		// no-op; TestToken is ignored for pretest but kept for input compatibility.
-	}
 	token, err := s.signSupplierTestToken(supplierTestTokenPayload{
 		SupplierID:      profile.ID,
 		Operation:       operation,
@@ -910,13 +907,6 @@ func (s *SupplierService) validateSupplierAccountSuggestions(ctx context.Context
 		}
 	}
 	return nil
-}
-
-func normalizeSupplierLoadFactor(value *int) *int {
-	if value == nil || *value <= 0 {
-		return nil
-	}
-	return value
 }
 
 func validateAndNormalizeSupplierModels(models []string) ([]string, error) {

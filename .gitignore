@@ -139,6 +139,10 @@ docs/*
 !docs/PAYMENT.md
 !docs/PAYMENT_CN.md
 !docs/ADMIN_PAYMENT_INTEGRATION_API.md
+!docs/UPSTREAM_SYNC.md
+!.github/upstream-sub2api.env
+!.github/scripts/
+!.github/scripts/*.sh
 .serena/
 .codex/
 frontend/coverage/

@@ -29,15 +29,15 @@ type supplierPricingIntervalRequest struct {
 }
 
 type supplierChannelModelPricingRequest struct {
-	Platform         string                          `json:"platform"`
-	Models           []string                        `json:"models"`
-	BillingMode      string                          `json:"billing_mode"`
-	InputPrice       *float64                        `json:"input_price"`
-	OutputPrice      *float64                        `json:"output_price"`
-	CacheWritePrice  *float64                        `json:"cache_write_price"`
-	CacheReadPrice   *float64                        `json:"cache_read_price"`
-	ImageOutputPrice *float64                        `json:"image_output_price"`
-	PerRequestPrice  *float64                        `json:"per_request_price"`
+	Platform         string                           `json:"platform"`
+	Models           []string                         `json:"models"`
+	BillingMode      string                           `json:"billing_mode"`
+	InputPrice       *float64                         `json:"input_price"`
+	OutputPrice      *float64                         `json:"output_price"`
+	CacheWritePrice  *float64                         `json:"cache_write_price"`
+	CacheReadPrice   *float64                         `json:"cache_read_price"`
+	ImageOutputPrice *float64                         `json:"image_output_price"`
+	PerRequestPrice  *float64                         `json:"per_request_price"`
 	Intervals        []supplierPricingIntervalRequest `json:"intervals"`
 }
 
@@ -329,7 +329,7 @@ func (h *SupplierHandler) SubmitPricingChange(c *gin.Context) {
 	}
 	var req struct {
 		Pricing    []supplierChannelModelPricingRequest `json:"settlement_pricing"`
-		SubmitNote string                              `json:"submit_note"`
+		SubmitNote string                               `json:"submit_note"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err.Error())

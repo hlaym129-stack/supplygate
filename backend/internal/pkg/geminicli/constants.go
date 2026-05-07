@@ -53,7 +53,7 @@ const (
 // It enables the "login without creating your own OAuth client" experience, but Google may
 // restrict which scopes are allowed for this client.
 // Configure via GEMINI_CLI_OAUTH_CLIENT_ID env var.
-var GeminiCLIOAuthClientID = ""
+var GeminiCLIOAuthClientID = "671854709300-k78lsd1m0p12aiq33l2m2rkf3d5d1fkt.apps.googleusercontent.com"
 
 // GeminiCLIOAuthClientSecret is the public OAuth client secret used by Google Gemini CLI.
 // Configure via GEMINI_CLI_OAUTH_CLIENT_SECRET env var.

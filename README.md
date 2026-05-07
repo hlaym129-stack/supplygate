@@ -23,10 +23,6 @@ SupplyGate 保留了 Sub2API 的核心网关能力：用户通过平台生成的
 
 代码模块名、默认站点名、Docker 镜像示例中仍保留 `sub2api` 命名，这是为了兼容上游项目结构和既有部署脚本。
 
-## AI 协作入口
-
-如果你是接手本仓库的 AI 或自动化编码工具，请先阅读 [`AGENTS.md`](AGENTS.md)。它记录了项目当前事实、关键源码入口、供应商流程、不要被哪些历史命名和本地运行产物干扰，以及推荐验证命令。
-
 ## 核心能力
 
 - **多协议网关**：支持 Claude Messages、OpenAI Responses / Chat Completions / Images、Gemini v1beta、Antigravity 专用入口，并按分组平台自动路由。

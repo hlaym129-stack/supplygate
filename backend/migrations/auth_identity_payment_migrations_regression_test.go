@@ -127,3 +127,39 @@ func TestMigration124BackfillsLegacyOIDCSecurityFlagsSafely(t *testing.T) {
 	require.Contains(t, sql, "oidc_connect_enabled")
 	require.Contains(t, sql, "'false'")
 }
+func TestMigration138AddsImageGenerationGroupControlsSafely(t *testing.T) {
+	content, err := FS.ReadFile("138_image_generation_group_controls.sql")
+	require.NoError(t, err)
+
+	sql := string(content)
+	require.Contains(t, sql, "ADD COLUMN IF NOT EXISTS allow_image_generation")
+	require.Contains(t, sql, "ADD COLUMN IF NOT EXISTS image_rate_independent")
+	require.Contains(t, sql, "ADD COLUMN IF NOT EXISTS image_rate_multiplier")
+	require.Contains(t, sql, "WHERE platform IN ('openai', 'gemini', 'antigravity')")
+	require.NotContains(t, sql, "DROP COLUMN")
+}
+
+func TestMigration139AllowsGitHubAndGoogleAuthProviders(t *testing.T) {
+	content, err := FS.ReadFile("139_allow_email_oauth_provider_types.sql")
+	require.NoError(t, err)
+
+	sql := string(content)
+	require.Contains(t, sql, "users_signup_source_check")
+	require.Contains(t, sql, "auth_identities_provider_type_check")
+	require.Contains(t, sql, "auth_identity_channels_provider_type_check")
+	require.Contains(t, sql, "pending_auth_sessions_provider_type_check")
+	require.Contains(t, sql, "'github'")
+	require.Contains(t, sql, "'google'")
+}
+
+func TestMigration140AddsContentModerationTablesAndSetting(t *testing.T) {
+	content, err := FS.ReadFile("140_content_moderation.sql")
+	require.NoError(t, err)
+
+	sql := string(content)
+	require.Contains(t, sql, "('risk_control_enabled', 'false'")
+	require.Contains(t, sql, "CREATE TABLE IF NOT EXISTS content_moderation_logs")
+	require.Contains(t, sql, "ADD COLUMN IF NOT EXISTS violation_count")
+	require.Contains(t, sql, "CREATE INDEX IF NOT EXISTS idx_content_moderation_logs_created_at")
+	require.NotContains(t, sql, "DROP TABLE")
+}

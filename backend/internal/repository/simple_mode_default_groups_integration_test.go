@@ -109,7 +109,8 @@ func TestEnsureDefaultGroups_DoesNotOverwriteExistingDefaults(t *testing.T) {
 
 	got, err := client.Group.Query().Where(group.IDEQ(g.ID)).Only(seedCtx)
 	require.NoError(t, err)
-	require.Equal(t, "custom", got.Description)
+	require.NotNil(t, got.Description)
+	require.Equal(t, "custom", *got.Description)
 	require.Equal(t, 2.0, got.RateMultiplier)
 	require.True(t, got.IsExclusive)
 	require.False(t, got.AllowMessagesDispatch)

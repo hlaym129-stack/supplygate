@@ -1,3 +1,20 @@
 {
-   "signedContributors": []
+  "signedContributors": [
+    {
+      "name": "hlaym129-stack",
+      "id": 251820477,
+      "comment_id": 4395116462,
+      "created_at": "2026-05-07T07:36:34Z",
+      "repoId": 1228010728,
+      "pullRequestNo": 2
+    },
+    {
+      "name": "hlaym129-stack",
+      "id": 251820477,
+      "comment_id": 4395156918,
+      "created_at": "2026-05-07T07:43:25Z",
+      "repoId": 1228010728,
+      "pullRequestNo": 2
+    }
+  ]
 }

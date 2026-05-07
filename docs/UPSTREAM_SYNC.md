@@ -26,7 +26,7 @@ git remote set-url --push upstream DISABLED
 - 从 `origin/main` 创建 `codex/sync-sub2api-YYYYMMDD` 分支。
 - 读取 `.github/upstream-sub2api.env` 中记录的上游基线。
 - 生成从该基线到 `upstream/main` 的候选补丁。
-- 排除 SupplyGate 自有文件：`README.md`、`CLA.md`、版本文件、发布工作流和关键项目链接页面。
+- 排除 SupplyGate 自有文件：`README.md`、`CLA.md`、版本文件、发布工作流、关键项目链接页面，以及 SupplyGate 自己新增的供应商中心。
 - 应用补丁后运行保护检查。
 - 更新 `.github/upstream-sub2api.env`，表示本次 PR 接受后新的上游基线。
 
@@ -54,6 +54,14 @@ git diff origin/main
 ```
 
 PR 分支名必须使用 `codex/sync-sub2api-` 前缀。GitHub Actions 会对这类 PR 自动运行 `Upstream Sync Guard`，如果上游补丁改动了 SupplyGate 自有文件会直接失败。
+
+供应商中心是 SupplyGate 自己新增的业务模块，sub2api 原项目没有该能力。同步上游时默认不自动接受对以下区域的改动：
+
+- 供应商资料、账号、报价、审核相关后端 handler、service、repository、middleware、route。
+- `supplier_profiles` 和供应商账号/报价相关迁移。
+- 供应商端前端页面、管理员供应商管理页、供应商 API 客户端。
+
+如果上游未来也引入了同名或相近能力，必须单独开非同步 PR 人工对比设计，不能通过自动同步脚本直接覆盖。
 
 ## 发布规则
 

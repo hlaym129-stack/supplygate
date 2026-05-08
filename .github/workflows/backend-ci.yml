@@ -20,26 +20,26 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Verify Go version
         run: |
-          go version | grep -q 'go1.26.2'
+          go version | grep -q 'go1.26.3'
       - name: Unit tests
         working-directory: backend
-        run: GOTOOLCHAIN=go1.26.3 make test-unit
+        run: make test-unit
       - name: Integration tests
         working-directory: backend
-        run: GOTOOLCHAIN=go1.26.3 make test-integration
+        run: make test-integration
 
   frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 9
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Install frontend dependencies
@@ -60,11 +60,9 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Verify Go version
         run: |
-          go version | grep -q 'go1.26.2'
+          go version | grep -q 'go1.26.3'
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
-        env:
-          GOTOOLCHAIN: go1.26.3
         with:
           version: v2.9
           args: --timeout=30m

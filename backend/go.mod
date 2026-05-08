@@ -2,8 +2,6 @@ module github.com/Wei-Shaw/sub2api
 
 go 1.26.2
 
-toolchain go1.26.3
-
 require (
 	entgo.io/ent v0.14.5
 	github.com/DATA-DOG/go-sqlmock v1.5.2

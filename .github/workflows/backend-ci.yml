@@ -20,13 +20,13 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Verify Go version
         run: |
-          GOTOOLCHAIN=local go version | grep -q 'go1.26.2'
+          go version | grep -q 'go1.26.2'
       - name: Unit tests
         working-directory: backend
-        run: make test-unit
+        run: GOTOOLCHAIN=go1.26.3 make test-unit
       - name: Integration tests
         working-directory: backend
-        run: make test-integration
+        run: GOTOOLCHAIN=go1.26.3 make test-integration
 
   frontend:
     runs-on: ubuntu-latest
@@ -60,9 +60,11 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Verify Go version
         run: |
-          GOTOOLCHAIN=local go version | grep -q 'go1.26.2'
+          go version | grep -q 'go1.26.2'
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
+        env:
+          GOTOOLCHAIN: go1.26.3
         with:
           version: v2.9
           args: --timeout=30m

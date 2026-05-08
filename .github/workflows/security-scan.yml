@@ -23,12 +23,12 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Verify Go version
         run: |
-          GOTOOLCHAIN=local go version | grep -q 'go1.26.2'
+          go version | grep -q 'go1.26.2'
       - name: Run govulncheck
         working-directory: backend
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./...
+          GOTOOLCHAIN=go1.26.3 go install golang.org/x/vuln/cmd/govulncheck@latest
+          GOTOOLCHAIN=go1.26.3 govulncheck ./...
 
   frontend-security:
     runs-on: ubuntu-latest

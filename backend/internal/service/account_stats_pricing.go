@@ -233,14 +233,18 @@ func applyAccountStatsCost(
 	if model == "" {
 		model = requestedModel
 	}
+	requestCount := 1
+	if usageLog != nil && usageLog.ImageCount > 0 {
+		requestCount = usageLog.ImageCount
+	}
 	if account != nil && account.OwnerType == AccountOwnerTypeSupplier {
-		if cost := resolveSupplierSettlementCost(ctx, supplierRepo, accountID, account.Platform, model, usageLog.CreatedAt, tokens, 1); cost != nil {
+		if cost := resolveSupplierSettlementCost(ctx, supplierRepo, accountID, account.Platform, model, usageLog.CreatedAt, tokens, requestCount); cost != nil {
 			usageLog.AccountStatsCost = cost
 			return
 		}
 	}
 	usageLog.AccountStatsCost = resolveAccountStatsCost(
-		ctx, cs, bs, accountID, groupID, model, tokens, 1, totalCost,
+		ctx, cs, bs, accountID, groupID, model, tokens, requestCount, totalCost,
 	)
 }
 

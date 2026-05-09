@@ -38,7 +38,7 @@ describe('AppSidebar supplier registration navigation', () => {
   })
 
   it('keeps dashboard and usage visible for pending suppliers while hiding account submission', () => {
-    const pendingSupplierBlock = componentSource.match(/if \(!isSupplier\.value\) \{[\s\S]*?\n  \}/)?.[0] ?? ''
+    const pendingSupplierBlock = componentSource.match(/if \(!isSupplier\.value\) \{[\s\S]*?\n\s{2}\}/)?.[0] ?? ''
 
     expect(pendingSupplierBlock).toContain('/supplier/dashboard')
     expect(pendingSupplierBlock).toContain('/supplier/usage')

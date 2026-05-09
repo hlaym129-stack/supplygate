@@ -21,7 +21,7 @@ SupplyGate 保留了 Sub2API 的核心网关能力：用户通过平台生成的
 
 本项目在此基础上新增了供应商中心：供应商注册后提交主体资料，经管理员审核通过后，可以提交自有上游账号。账号必须先完成连通性预检和管理员审核，审核通过后才会进入调度池。这样平台不再只依赖运营方手工录入上游资源，而是可以形成可审核、可结算的供应商接入流程。
 
-代码模块名、默认站点名、Docker 镜像示例中仍保留 `sub2api` 命名，这是为了兼容上游项目结构和既有部署脚本。
+代码模块名和二进制/systemd 安装路径仍保留 `sub2api` 命名，这是为了兼容上游项目结构和既有二进制部署；发布镜像和 Docker Compose 部署口径统一使用 SupplyGate。
 
 ## 核心能力
 
@@ -98,7 +98,7 @@ underscores_in_headers on;
 ```bash
 curl -sSL https://raw.githubusercontent.com/hlaym129-stack/supplygate/main/deploy/docker-deploy.sh | bash
 docker compose up -d
-docker compose logs -f sub2api
+docker compose logs -f supplygate
 ```
 
 访问：`http://localhost:8080`
@@ -115,7 +115,7 @@ cp .env.example .env
 $EDITOR .env
 
 docker compose -f docker-compose.dev.yml up --build -d
-docker compose -f docker-compose.dev.yml logs -f sub2api
+docker compose -f docker-compose.dev.yml logs -f supplygate
 ```
 
 访问：`http://localhost:8080`

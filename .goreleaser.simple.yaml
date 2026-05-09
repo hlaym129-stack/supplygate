@@ -8,7 +8,7 @@ before:
     - go mod tidy -C backend
 
 builds:
-  - id: sub2api
+  - id: supplygate
     dir: backend
     main: ./cmd/server
     binary: sub2api

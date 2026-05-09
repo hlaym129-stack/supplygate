@@ -362,7 +362,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/supplier/DashboardView.vue'),
     meta: {
       requiresAuth: true,
-      requiresSupplier: true,
+      requiresSupplierProfile: true,
       title: 'Supplier Dashboard',
       titleKey: 'supplier.dashboard.title',
       descriptionKey: 'supplier.dashboard.description'
@@ -408,7 +408,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/supplier/UsageView.vue'),
     meta: {
       requiresAuth: true,
-      requiresSupplier: true,
+      requiresSupplierProfile: true,
       title: 'Supplier Usage'
     }
   },
@@ -715,7 +715,7 @@ const BACKEND_MODE_ALLOWED_PATHS = ['/login', '/key-usage', '/setup', '/payment/
 function roleDashboard(authStore: ReturnType<typeof useAuthStore>): string {
   if (authStore.isAdmin) return '/admin/dashboard'
   if (authStore.isSupplier) return '/supplier/dashboard'
-  if (authStore.hasSupplierProfile) return '/supplier/profile'
+  if (authStore.hasSupplierProfile) return '/supplier/dashboard'
   return '/dashboard'
 }
 const BACKEND_MODE_CALLBACK_PATHS = [

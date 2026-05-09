@@ -132,20 +132,31 @@
               <div class="grid gap-4 md:grid-cols-2">
                 <label class="space-y-1">
                   <span class="input-label">主体名称</span>
-                  <input v-model="formData.supplier_profile.company_name" class="input" :class="{ 'input-error': errors.supplier_company_name }" :disabled="registrationActionDisabled" required />
+                  <input
+                    v-model="formData.supplier_profile.company_name"
+                    data-testid="register-supplier-company-name"
+                    class="input"
+                    :class="{ 'input-error': errors.supplier_company_name }"
+                    :disabled="registrationActionDisabled"
+                    required
+                  />
                 </label>
                 <label class="space-y-1">
                   <span class="input-label">联系人</span>
-                  <input v-model="formData.supplier_profile.contact_name" class="input" :disabled="registrationActionDisabled" />
+                  <input v-model="formData.supplier_profile.contact_name" data-testid="register-supplier-contact-name" class="input" :disabled="registrationActionDisabled" />
+                </label>
+                <label class="space-y-1">
+                  <span class="input-label">联系邮箱</span>
+                  <input v-model="formData.supplier_profile.contact_email" data-testid="register-supplier-contact-email" class="input" type="email" :disabled="registrationActionDisabled" />
                 </label>
                 <label class="space-y-1">
                   <span class="input-label">联系电话</span>
-                  <input v-model="formData.supplier_profile.contact_phone" class="input" :disabled="registrationActionDisabled" />
+                  <input v-model="formData.supplier_profile.contact_phone" data-testid="register-supplier-contact-phone" class="input" :disabled="registrationActionDisabled" />
                 </label>
               </div>
               <label class="mt-4 block space-y-1">
                 <span class="input-label">资源说明</span>
-                <textarea v-model="formData.supplier_profile.notes" class="input min-h-24" :disabled="registrationActionDisabled" placeholder="说明可提供的平台、账号类型、资源来源和可用规模"></textarea>
+                <textarea v-model="formData.supplier_profile.notes" data-testid="register-supplier-notes" class="input min-h-24" :disabled="registrationActionDisabled" placeholder="说明可提供的平台、账号类型、资源来源和可用规模"></textarea>
               </label>
             </div>
           </div>
@@ -429,7 +440,7 @@ const appStore = useAppStore()
 function defaultRedirectPath(): string {
   if (authStore.isAdmin) return '/admin/dashboard'
   if (authStore.isSupplier) return '/supplier/dashboard'
-  if (authStore.hasSupplierProfile) return '/supplier/profile'
+  if (authStore.hasSupplierProfile) return '/supplier/dashboard'
   return '/dashboard'
 }
 

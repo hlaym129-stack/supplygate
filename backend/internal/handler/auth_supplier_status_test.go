@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -119,4 +120,38 @@ func TestAuthHandlerRespondWithTokenPairIncludesSupplierStatus(t *testing.T) {
 			require.Equal(t, tt.hasSupplierAccess, resp.Data.User.HasSupplierAccess)
 		})
 	}
+}
+
+func TestEnrichSupplierAccessClearsStaleStatusWhenProfileMissing(t *testing.T) {
+	user := &service.User{
+		ID:                99,
+		HasSupplierAccess: true,
+		SupplierStatus:    service.SupplierStatusApproved,
+	}
+	supplierService := service.NewSupplierService(&authSupplierRepoStub{}, nil, nil, nil, nil, nil)
+
+	err := enrichSupplierAccess(context.Background(), supplierService, user)
+
+	require.NoError(t, err)
+	require.False(t, user.HasSupplierAccess)
+	require.Empty(t, user.SupplierStatus)
+}
+
+func TestApplySupplierSignupProfileRequiresCompanyName(t *testing.T) {
+	handler := &AuthHandler{
+		authService:     &service.AuthService{},
+		supplierService: service.NewSupplierService(nil, nil, nil, nil, nil, nil),
+	}
+
+	err := handler.applySupplierSignupProfile(
+		context.Background(),
+		&service.User{ID: 101},
+		"supplier",
+		service.SupplierProfileInput{},
+		"",
+	)
+
+	require.Error(t, err)
+	require.True(t, infraerrors.IsBadRequest(err))
+	require.Equal(t, "SUPPLIER_COMPANY_REQUIRED", infraerrors.Reason(err))
 }

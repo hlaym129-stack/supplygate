@@ -156,11 +156,6 @@ export function normalizeSupplierPricingRevisions(revisions: SupplierAccountPric
 }
 
 export const supplierAPI = {
-  async applyProfile(input: SupplierProfileInput): Promise<SupplierProfile> {
-    const { data } = await apiClient.post<SupplierProfile>('/supplier/apply', input)
-    return data
-  },
-
   async getProfile(): Promise<SupplierProfile> {
     const { data } = await apiClient.get<SupplierProfile>('/supplier/profile')
     return data

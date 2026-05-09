@@ -718,7 +718,11 @@ const userNavItems = computed((): NavItem[] => finalizeNav(buildSelfNavItems(tru
 const supplierNavItems = computed((): NavItem[] => {
   const profileItem = { path: '/supplier/profile', label: '主体资料', icon: UserIcon }
   if (!isSupplier.value) {
-    return [profileItem]
+    return [
+      { path: '/supplier/dashboard', label: '供应商看板', icon: DashboardIcon },
+      { path: '/supplier/usage', label: '用量归属', icon: ChartIcon },
+      profileItem,
+    ]
   }
   return [
     { path: '/supplier/dashboard', label: '供应商看板', icon: DashboardIcon },

@@ -14,10 +14,14 @@ func RegisterSupplierRoutes(
 	authenticated := v1.Group("")
 	authenticated.Use(gin.HandlerFunc(jwtAuth))
 
-	authenticated.POST("/supplier/apply", h.Supplier.ApplyProfile)
 	authenticated.GET("/supplier/model-pricing", h.Supplier.ModelPricing)
 	authenticated.GET("/supplier/profile", h.Supplier.GetProfile)
 	authenticated.PUT("/supplier/profile", h.Supplier.ApplyProfile)
+	authenticated.GET("/supplier/usage/summary", h.Supplier.UsageSummary)
+	authenticated.GET("/supplier/dashboard/stats", h.Supplier.DashboardStats)
+	authenticated.GET("/supplier/dashboard/trend", h.Supplier.DashboardTrend)
+	authenticated.GET("/supplier/dashboard/models", h.Supplier.DashboardModels)
+	authenticated.GET("/supplier/dashboard/recent", h.Supplier.DashboardRecent)
 
 	supplier := authenticated.Group("/supplier")
 	supplier.Use(middleware.SupplierOnly(h.SupplierService))
@@ -33,11 +37,6 @@ func RegisterSupplierRoutes(
 		supplier.POST("/accounts/:id/edit-request", h.Supplier.RequestAccountEdit)
 		supplier.GET("/accounts/:id/pricing-revisions", h.Supplier.ListPricingRevisions)
 		supplier.POST("/accounts/:id/pricing-change", h.Supplier.SubmitPricingChange)
-		supplier.GET("/usage/summary", h.Supplier.UsageSummary)
-		supplier.GET("/dashboard/stats", h.Supplier.DashboardStats)
-		supplier.GET("/dashboard/trend", h.Supplier.DashboardTrend)
-		supplier.GET("/dashboard/models", h.Supplier.DashboardModels)
-		supplier.GET("/dashboard/recent", h.Supplier.DashboardRecent)
 
 		registerSupplierAccountOAuthRoutes(supplier, h)
 	}

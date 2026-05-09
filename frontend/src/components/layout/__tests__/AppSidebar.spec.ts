@@ -30,3 +30,20 @@ describe('AppSidebar header styles', () => {
     expect(sidebarBrandBlockMatch?.[0]).not.toContain('overflow: hidden;')
   })
 })
+
+describe('AppSidebar supplier registration navigation', () => {
+  it('does not keep the removed supplier apply entry', () => {
+    expect(componentSource).not.toContain('/supplier/apply')
+    expect(componentSource).not.toContain('供应商入驻')
+  })
+
+  it('keeps dashboard and usage visible for pending suppliers while hiding account submission', () => {
+    const pendingSupplierBlock = componentSource.match(/if \(!isSupplier\.value\) \{[\s\S]*?\n  \}/)?.[0] ?? ''
+
+    expect(pendingSupplierBlock).toContain('/supplier/dashboard')
+    expect(pendingSupplierBlock).toContain('/supplier/usage')
+    expect(componentSource).toContain("const profileItem = { path: '/supplier/profile'")
+    expect(pendingSupplierBlock).toContain('profileItem')
+    expect(pendingSupplierBlock).not.toContain('/supplier/accounts')
+  })
+})

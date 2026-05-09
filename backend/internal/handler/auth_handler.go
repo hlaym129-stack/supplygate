@@ -481,6 +481,7 @@ func enrichSupplierAccess(ctx context.Context, supplierService *service.Supplier
 		return err
 	}
 	user.HasSupplierAccess = allowed
+	user.SupplierStatus = ""
 	if profile != nil {
 		user.SupplierStatus = profile.Status
 	}

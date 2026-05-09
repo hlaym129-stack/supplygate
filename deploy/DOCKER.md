@@ -6,9 +6,9 @@ SupplyGate is an AI API Gateway Platform for distributing and managing AI produc
 
 ```bash
 docker run -d \
-  --name sub2api \
+  --name supplygate \
   -p 8080:8080 \
-  -e DATABASE_URL="postgres://user:pass@host:5432/sub2api" \
+  -e DATABASE_URL="postgres://user:pass@host:5432/supplygate" \
   -e REDIS_URL="redis://host:6379" \
   ghcr.io/hlaym129-stack/supplygate:latest
 ```
@@ -19,12 +19,12 @@ docker run -d \
 version: '3.8'
 
 services:
-  sub2api:
+  supplygate:
     image: ghcr.io/hlaym129-stack/supplygate:latest
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/sub2api?sslmode=disable
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/supplygate?sslmode=disable
       - REDIS_URL=redis://redis:6379
     depends_on:
       - db
@@ -35,7 +35,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=sub2api
+      - POSTGRES_DB=supplygate
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

@@ -1,14 +1,14 @@
 #!/bin/bash
 # =============================================================================
-# Sub2API Docker Deployment Preparation Script
+# SupplyGate Docker Deployment Preparation Script
 # =============================================================================
-# This script prepares deployment files for Sub2API:
+# This script prepares deployment files for SupplyGate:
 #   - Downloads docker-compose.local.yml and .env.example
 #   - Generates secure secrets (JWT_SECRET, TOTP_ENCRYPTION_KEY, POSTGRES_PASSWORD)
 #   - Creates necessary data directories
 #
 # After running this script, you can start services with:
-#   docker-compose up -d
+#   docker compose up -d
 # =============================================================================
 
 set -e
@@ -54,7 +54,7 @@ command_exists() {
 main() {
     echo ""
     echo "=========================================="
-    echo "  Sub2API Deployment Preparation"
+    echo "  SupplyGate Deployment Preparation"
     echo "=========================================="
     echo ""
 
@@ -154,10 +154,10 @@ main() {
     echo "Next steps:"
     echo "  1. (Optional) Edit .env to customize configuration"
     echo "  2. Start services:"
-    echo "     docker-compose up -d"
+    echo "     docker compose up -d"
     echo ""
     echo "  3. View logs:"
-    echo "     docker-compose logs -f sub2api"
+    echo "     docker compose logs -f supplygate"
     echo ""
     echo "  4. Access Web UI:"
     echo "     http://localhost:8080"

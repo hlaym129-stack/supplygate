@@ -1,6 +1,6 @@
-# Sub2API Deployment Files
+# SupplyGate Deployment Files
 
-This directory contains files for deploying Sub2API on Linux servers.
+This directory contains files for deploying SupplyGate on Linux servers.
 
 ## Deployment Methods
 
@@ -17,7 +17,7 @@ This directory contains files for deploying Sub2API on Linux servers.
 | `docker-compose.local.yml` | Docker Compose configuration (local directories, easy migration) |
 | `docker-deploy.sh` | **One-click Docker deployment script (recommended)** |
 | `.env.example` | Docker environment variables template |
-| `DOCKER.md` | Docker Hub documentation |
+| `DOCKER.md` | Docker image documentation |
 | `install.sh` | One-click binary installation script |
 | `install-datamanagementd.sh` | datamanagementd 一键安装脚本 |
 | `sub2api.service` | Systemd service unit file |
@@ -56,10 +56,10 @@ chmod +x docker-deploy.sh
 docker compose up -d
 
 # View logs
-docker compose logs -f sub2api
+docker compose logs -f supplygate
 
 # If admin password was auto-generated, find it in logs:
-docker compose logs sub2api | grep "admin password"
+docker compose logs supplygate | grep "admin password"
 
 # Access Web UI
 # http://localhost:8080
@@ -91,7 +91,7 @@ mkdir -p data postgres_data redis_data
 docker compose -f docker-compose.local.yml up -d
 
 # View logs (check for auto-generated admin password)
-docker compose -f docker-compose.local.yml logs -f sub2api
+docker compose -f docker-compose.local.yml logs -f supplygate
 
 # Access Web UI
 # http://localhost:8080
@@ -121,7 +121,7 @@ When using Docker Compose with `AUTO_SETUP=true`:
 
 3. If `ADMIN_PASSWORD` is not set, check logs for the generated password:
    ```bash
-   docker compose logs sub2api | grep "admin password"
+   docker compose logs supplygate | grep "admin password"
    ```
 
 ### Database Migration Notes (PostgreSQL)
@@ -168,10 +168,10 @@ docker compose -f docker-compose.local.yml up -d
 docker compose -f docker-compose.local.yml down
 
 # View logs
-docker compose -f docker-compose.local.yml logs -f sub2api
+docker compose -f docker-compose.local.yml logs -f supplygate
 
-# Restart Sub2API only
-docker compose -f docker-compose.local.yml restart sub2api
+# Restart SupplyGate only
+docker compose -f docker-compose.local.yml restart supplygate
 
 # Update to latest version
 docker compose -f docker-compose.local.yml pull
@@ -192,10 +192,10 @@ docker compose up -d
 docker compose down
 
 # View logs
-docker compose logs -f sub2api
+docker compose logs -f supplygate
 
-# Restart Sub2API only
-docker compose restart sub2api
+# Restart SupplyGate only
+docker compose restart supplygate
 
 # Update to latest version
 docker compose pull
@@ -213,7 +213,7 @@ docker compose down -v
 | `JWT_SECRET` | **Recommended** | *(auto-generated)* | JWT secret (fixed for persistent sessions) |
 | `TOTP_ENCRYPTION_KEY` | **Recommended** | *(auto-generated)* | TOTP encryption key (fixed for persistent 2FA) |
 | `SERVER_PORT` | No | `8080` | Server port |
-| `ADMIN_EMAIL` | No | `admin@sub2api.local` | Admin email |
+| `ADMIN_EMAIL` | No | `admin@supplygate.local` | Admin email |
 | `ADMIN_PASSWORD` | No | *(auto-generated)* | Admin password |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
@@ -234,13 +234,13 @@ When using `docker-compose.local.yml`, all data is stored in local directories, 
 cd /path/to/deployment
 docker compose -f docker-compose.local.yml down
 cd ..
-tar czf sub2api-complete.tar.gz deployment/
+tar czf supplygate-complete.tar.gz deployment/
 
 # Transfer to new server
-scp sub2api-complete.tar.gz user@new-server:/path/to/destination/
+scp supplygate-complete.tar.gz user@new-server:/path/to/destination/
 
 # On new server: Extract and start
-tar xzf sub2api-complete.tar.gz
+tar xzf supplygate-complete.tar.gz
 cd deployment/
 docker compose -f docker-compose.local.yml up -d
 ```
@@ -251,7 +251,7 @@ Your entire deployment (configuration + data) is migrated!
 
 ## Gemini OAuth Configuration
 
-Sub2API supports three methods to connect to Gemini:
+SupplyGate supports three methods to connect to Gemini:
 
 ### Method 1: Code Assist OAuth (Recommended for GCP Users)
 
@@ -296,7 +296,7 @@ Requires your own OAuth client credentials.
    - Go to "APIs & Services" → "Credentials"
    - Click "Create Credentials" → "OAuth client ID"
    - Application type: **Web application** (or **Desktop app**)
-   - Name: e.g., "Sub2API Gemini"
+   - Name: e.g., "SupplyGate Gemini"
    - Authorized redirect URIs: Add `http://localhost:1455/auth/callback`
 6. Copy the **Client ID** and **Client Secret**
 7. **⚠️ Publish to Production (IMPORTANT):**
@@ -349,6 +349,8 @@ GEMINI_OAUTH_CLIENT_SECRET=GOCSPX-your-client-secret
 ## Binary Installation
 
 For production servers using systemd.
+
+Binary installation keeps the legacy `sub2api` service, user, binary, and filesystem paths for compatibility with existing deployments.
 
 ### One-Line Installation
 
@@ -495,7 +497,7 @@ For **local directory version**:
 docker compose -f docker-compose.local.yml ps
 
 # View detailed logs
-docker compose -f docker-compose.local.yml logs --tail=100 sub2api
+docker compose -f docker-compose.local.yml logs --tail=100 supplygate
 
 # Check database connection
 docker compose -f docker-compose.local.yml exec postgres pg_isready
@@ -517,7 +519,7 @@ For **named volumes version**:
 docker compose ps
 
 # View detailed logs
-docker compose logs --tail=100 sub2api
+docker compose logs --tail=100 supplygate
 
 # Check database connection
 docker compose exec postgres pg_isready
@@ -559,7 +561,7 @@ sudo systemctl status redis
 
 ## TLS Fingerprint Configuration
 
-Sub2API supports TLS fingerprint simulation to make requests appear as if they come from the official Claude CLI (Node.js client).
+SupplyGate supports TLS fingerprint simulation to make requests appear as if they come from the official Claude CLI (Node.js client).
 
 > **💡 Tip:** Visit **[tls.sub2api.org](https://tls.sub2api.org/)** to get TLS fingerprint information for different devices and browsers.
 

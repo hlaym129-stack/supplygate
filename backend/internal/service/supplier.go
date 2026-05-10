@@ -1453,19 +1453,6 @@ func floatPtr(value float64) *float64 {
 	return &v
 }
 
-func defaultSupplierGroupIDs(ctx context.Context, groupRepo GroupRepository, platform string) ([]int64, error) {
-	groups, err := groupRepo.ListActiveByPlatform(ctx, platform)
-	if err != nil {
-		return nil, err
-	}
-	for _, group := range groups {
-		if group.SubscriptionType == SubscriptionTypeStandard {
-			return []int64{group.ID}, nil
-		}
-	}
-	return nil, ErrSupplierDefaultGroupMissing
-}
-
 func supplierMarketplacePlatformLabel(platform string) string {
 	switch strings.TrimSpace(platform) {
 	case PlatformAnthropic:

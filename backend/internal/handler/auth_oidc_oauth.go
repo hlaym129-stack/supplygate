@@ -1118,6 +1118,7 @@ func (k oidcJWK) publicKey() (any, error) {
 		if err != nil {
 			return nil, fmt.Errorf("decode ec y: %w", err)
 		}
+		//nolint:staticcheck // ECDSA key parsing, not ECDH — IsOnCurve is the only available validation
 		if !curve.IsOnCurve(x, y) {
 			return nil, errors.New("ec point is not on curve")
 		}

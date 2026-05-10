@@ -48,7 +48,8 @@ func (r *supplierRepository) UpsertProfile(ctx context.Context, profile *service
 			SetContactName(profile.ContactName).
 			SetContactEmail(profile.ContactEmail).
 			SetContactPhone(profile.ContactPhone).
-			SetStatus(service.SupplierStatusPending).
+			SetStatus(normalizeSupplierProfileStatus(profile.Status)).
+			SetAccountSubmissionEnabled(profile.AccountSubmissionEnabled).
 			SetSettlementConfig(settlement).
 			SetNotes(profile.Notes).
 			Save(ctx)
@@ -63,7 +64,8 @@ func (r *supplierRepository) UpsertProfile(ctx context.Context, profile *service
 		SetContactName(profile.ContactName).
 		SetContactEmail(profile.ContactEmail).
 		SetContactPhone(profile.ContactPhone).
-		SetStatus(service.SupplierStatusPending).
+		SetStatus(normalizeSupplierProfileStatus(profile.Status)).
+		SetAccountSubmissionEnabled(profile.AccountSubmissionEnabled).
 		SetSettlementConfig(settlement).
 		SetNotes(profile.Notes).
 		SetReviewNote("").
@@ -75,6 +77,17 @@ func (r *supplierRepository) UpsertProfile(ctx context.Context, profile *service
 	}
 	applySupplierEntity(profile, updated)
 	return nil
+}
+
+func normalizeSupplierProfileStatus(status string) string {
+	switch status {
+	case service.SupplierStatusApproved:
+		return service.SupplierStatusApproved
+	case service.SupplierStatusRejected:
+		return service.SupplierStatusRejected
+	default:
+		return service.SupplierStatusPending
+	}
 }
 
 func (r *supplierRepository) GetProfileByUserID(ctx context.Context, userID int64) (*service.SupplierProfile, error) {
@@ -126,12 +139,15 @@ func (r *supplierRepository) ListProfiles(ctx context.Context, params pagination
 
 func (r *supplierRepository) UpdateProfileStatus(ctx context.Context, id int64, status string, reviewerID int64, reviewNote string) (*service.SupplierProfile, error) {
 	now := time.Now()
-	updated, err := r.client.SupplierProfile.UpdateOneID(id).
+	update := r.client.SupplierProfile.UpdateOneID(id).
 		SetStatus(status).
 		SetReviewNote(reviewNote).
 		SetReviewedAt(now).
-		SetReviewedBy(reviewerID).
-		Save(ctx)
+		SetReviewedBy(reviewerID)
+	if status == service.SupplierStatusApproved {
+		update.SetAccountSubmissionEnabled(true)
+	}
+	updated, err := update.Save(ctx)
 	if err != nil {
 		return nil, translatePersistenceError(err, service.ErrSupplierProfileNotFound, nil)
 	}
@@ -412,6 +428,7 @@ func applySupplierEntity(out *service.SupplierProfile, m *dbent.SupplierProfile)
 	out.ContactEmail = m.ContactEmail
 	out.ContactPhone = m.ContactPhone
 	out.Status = m.Status
+	out.AccountSubmissionEnabled = m.AccountSubmissionEnabled
 	out.SettlementConfig = copyJSONMap(m.SettlementConfig)
 	out.Notes = m.Notes
 	out.ReviewNote = m.ReviewNote

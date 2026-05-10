@@ -31,6 +31,8 @@ type SupplierProfile struct {
 	ContactPhone string `json:"contact_phone,omitempty"`
 	// Status holds the value of the "status" field.
 	Status string `json:"status,omitempty"`
+	// AccountSubmissionEnabled holds the value of the "account_submission_enabled" field.
+	AccountSubmissionEnabled bool `json:"account_submission_enabled,omitempty"`
 	// SettlementConfig holds the value of the "settlement_config" field.
 	SettlementConfig map[string]interface{} `json:"settlement_config,omitempty"`
 	// Notes holds the value of the "notes" field.
@@ -100,6 +102,8 @@ func (*SupplierProfile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case supplierprofile.FieldSettlementConfig:
 			values[i] = new([]byte)
+		case supplierprofile.FieldAccountSubmissionEnabled:
+			values[i] = new(sql.NullBool)
 		case supplierprofile.FieldID, supplierprofile.FieldUserID, supplierprofile.FieldReviewedBy:
 			values[i] = new(sql.NullInt64)
 		case supplierprofile.FieldCompanyName, supplierprofile.FieldContactName, supplierprofile.FieldContactEmail, supplierprofile.FieldContactPhone, supplierprofile.FieldStatus, supplierprofile.FieldNotes, supplierprofile.FieldReviewNote:
@@ -162,6 +166,12 @@ func (_m *SupplierProfile) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = value.String
+			}
+		case supplierprofile.FieldAccountSubmissionEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field account_submission_enabled", values[i])
+			} else if value.Valid {
+				_m.AccountSubmissionEnabled = value.Bool
 			}
 		case supplierprofile.FieldSettlementConfig:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -277,6 +287,9 @@ func (_m *SupplierProfile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
+	builder.WriteString(", ")
+	builder.WriteString("account_submission_enabled=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AccountSubmissionEnabled))
 	builder.WriteString(", ")
 	builder.WriteString("settlement_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SettlementConfig))

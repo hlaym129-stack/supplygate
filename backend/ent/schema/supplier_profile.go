@@ -44,6 +44,8 @@ func (SupplierProfile) Fields() []ent.Field {
 		field.String("status").
 			MaxLen(20).
 			Default(domain.SupplierStatusPending),
+		field.Bool("account_submission_enabled").
+			Default(false),
 		field.JSON("settlement_config", map[string]any{}).
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
 			Default(func() map[string]any { return map[string]any{} }),

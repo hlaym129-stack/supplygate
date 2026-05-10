@@ -67,7 +67,8 @@ func (r *groupRepository) Create(ctx context.Context, groupIn *service.Group) er
 		SetRequirePrivacySet(groupIn.RequirePrivacySet).
 		SetDefaultMappedModel(groupIn.DefaultMappedModel).
 		SetMessagesDispatchModelConfig(groupIn.MessagesDispatchModelConfig).
-		SetRpmLimit(groupIn.RPMLimit)
+		SetRpmLimit(groupIn.RPMLimit).
+		SetNillableSupplierProfileID(groupIn.SupplierProfileID)
 
 	// 设置模型路由配置
 	if groupIn.ModelRouting != nil {
@@ -170,6 +171,11 @@ func (r *groupRepository) Update(ctx context.Context, groupIn *service.Group) er
 		builder = builder.SetImagePrice4k(*groupIn.ImagePrice4K)
 	} else {
 		builder = builder.ClearImagePrice4k()
+	}
+	if groupIn.SupplierProfileID != nil {
+		builder = builder.SetSupplierProfileID(*groupIn.SupplierProfileID)
+	} else {
+		builder = builder.ClearSupplierProfileID()
 	}
 
 	// 处理 FallbackGroupID：nil 时清除，否则设置

@@ -76,6 +76,14 @@ func RegisterUserRoutes(
 			channels.GET("/available", h.AvailableChannel.List)
 		}
 
+		marketplace := authenticated.Group("/marketplace")
+		{
+			marketplace.GET("/suppliers", h.SupplierMarketplace.ListSuppliers)
+			marketplace.GET("/suppliers/:supplierId", h.SupplierMarketplace.GetSupplierDetail)
+			marketplace.POST("/groups/:groupId/subscribe", h.SupplierMarketplace.SubscribeGroup)
+			marketplace.DELETE("/groups/:groupId/subscribe", h.SupplierMarketplace.UnsubscribeGroup)
+		}
+
 		// 使用记录
 		usage := authenticated.Group("/usage")
 		{

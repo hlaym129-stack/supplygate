@@ -2620,6 +2620,22 @@ func (c *GroupClient) QueryAllowedUsers(_m *Group) *UserQuery {
 	return query
 }
 
+// QuerySupplierProfile queries the supplier_profile edge of a Group.
+func (c *GroupClient) QuerySupplierProfile(_m *Group) *SupplierProfileQuery {
+	query := (&SupplierProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(group.Table, group.FieldID, id),
+			sqlgraph.To(supplierprofile.Table, supplierprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, group.SupplierProfileTable, group.SupplierProfileColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryAccountGroups queries the account_groups edge of a Group.
 func (c *GroupClient) QueryAccountGroups(_m *Group) *AccountGroupQuery {
 	query := (&AccountGroupClient{config: c.config}).Query()

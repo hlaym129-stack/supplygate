@@ -255,21 +255,22 @@ func supplierProfileAdminResponse(profile *service.SupplierProfile) gin.H {
 		return gin.H{}
 	}
 	return gin.H{
-		"id":                profile.ID,
-		"user_id":           profile.UserID,
-		"company_name":      profile.CompanyName,
-		"contact_name":      profile.ContactName,
-		"contact_email":     profile.ContactEmail,
-		"contact_phone":     profile.ContactPhone,
-		"status":            profile.Status,
-		"settlement_config": profile.SettlementConfig,
-		"notes":             profile.Notes,
-		"review_note":       profile.ReviewNote,
-		"reviewed_at":       profile.ReviewedAt,
-		"reviewed_by":       profile.ReviewedBy,
-		"created_at":        profile.CreatedAt,
-		"updated_at":        profile.UpdatedAt,
-		"user":              supplierAdminUserResponse(profile.User),
+		"id":                         profile.ID,
+		"user_id":                    profile.UserID,
+		"company_name":               profile.CompanyName,
+		"contact_name":               profile.ContactName,
+		"contact_email":              profile.ContactEmail,
+		"contact_phone":              profile.ContactPhone,
+		"status":                     profile.Status,
+		"account_submission_enabled": profile.AccountSubmissionEnabled,
+		"settlement_config":          profile.SettlementConfig,
+		"notes":                      profile.Notes,
+		"review_note":                profile.ReviewNote,
+		"reviewed_at":                profile.ReviewedAt,
+		"reviewed_by":                profile.ReviewedBy,
+		"created_at":                 profile.CreatedAt,
+		"updated_at":                 profile.UpdatedAt,
+		"user":                       supplierAdminUserResponse(profile.User),
 	}
 }
 

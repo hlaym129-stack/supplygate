@@ -192,6 +192,7 @@ func groupFromServiceBase(g *service.Group) Group {
 		RequireOAuthOnly:                g.RequireOAuthOnly,
 		RequirePrivacySet:               g.RequirePrivacySet,
 		RPMLimit:                        g.RPMLimit,
+		SupplierProfileID:               g.SupplierProfileID,
 		CreatedAt:                       g.CreatedAt,
 		UpdatedAt:                       g.UpdatedAt,
 	}
@@ -405,13 +406,14 @@ func SupplierProfileFromService(profile *service.SupplierProfile) any {
 		return nil
 	}
 	return map[string]any{
-		"id":            profile.ID,
-		"user_id":       profile.UserID,
-		"company_name":  profile.CompanyName,
-		"contact_name":  profile.ContactName,
-		"contact_email": profile.ContactEmail,
-		"status":        profile.Status,
-		"user":          UserFromServiceShallow(profile.User),
+		"id":                         profile.ID,
+		"user_id":                    profile.UserID,
+		"company_name":               profile.CompanyName,
+		"contact_name":               profile.ContactName,
+		"contact_email":              profile.ContactEmail,
+		"status":                     profile.Status,
+		"account_submission_enabled": profile.AccountSubmissionEnabled,
+		"user":                       UserFromServiceShallow(profile.User),
 	}
 }
 

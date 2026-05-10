@@ -85,6 +85,11 @@ func Status(v string) predicate.SupplierProfile {
 	return predicate.SupplierProfile(sql.FieldEQ(FieldStatus, v))
 }
 
+// AccountSubmissionEnabled applies equality check predicate on the "account_submission_enabled" field. It's identical to AccountSubmissionEnabledEQ.
+func AccountSubmissionEnabled(v bool) predicate.SupplierProfile {
+	return predicate.SupplierProfile(sql.FieldEQ(FieldAccountSubmissionEnabled, v))
+}
+
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
 func Notes(v string) predicate.SupplierProfile {
 	return predicate.SupplierProfile(sql.FieldEQ(FieldNotes, v))
@@ -458,6 +463,16 @@ func StatusEqualFold(v string) predicate.SupplierProfile {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.SupplierProfile {
 	return predicate.SupplierProfile(sql.FieldContainsFold(FieldStatus, v))
+}
+
+// AccountSubmissionEnabledEQ applies the EQ predicate on the "account_submission_enabled" field.
+func AccountSubmissionEnabledEQ(v bool) predicate.SupplierProfile {
+	return predicate.SupplierProfile(sql.FieldEQ(FieldAccountSubmissionEnabled, v))
+}
+
+// AccountSubmissionEnabledNEQ applies the NEQ predicate on the "account_submission_enabled" field.
+func AccountSubmissionEnabledNEQ(v bool) predicate.SupplierProfile {
+	return predicate.SupplierProfile(sql.FieldNEQ(FieldAccountSubmissionEnabled, v))
 }
 
 // NotesEQ applies the EQ predicate on the "notes" field.

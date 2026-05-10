@@ -535,7 +535,7 @@ func (r *userRepository) loadSupplierProfileSummaries(ctx context.Context, userM
 			continue
 		}
 		u.SupplierStatus = profile.Status
-		u.HasSupplierAccess = profile.Status == service.SupplierStatusApproved
+		u.HasSupplierAccess = profile.AccountSubmissionEnabled || profile.Status == service.SupplierStatusApproved
 	}
 	for _, u := range userMap {
 		switch {

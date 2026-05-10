@@ -160,6 +160,10 @@ func (Group) Fields() []ent.Field {
 		field.Int("rpm_limit").
 			Default(0).
 			Comment("分组 RPM 上限，0 表示不限制；设置后接管该分组用户的限流"),
+		field.Int64("supplier_profile_id").
+			Optional().
+			Nillable().
+			Comment("关联供应商资料 ID；为空表示非供应商专属分组"),
 	}
 }
 
@@ -175,6 +179,9 @@ func (Group) Edges() []ent.Edge {
 		edge.From("allowed_users", User.Type).
 			Ref("allowed_groups").
 			Through("user_allowed_groups", UserAllowedGroup.Type),
+		edge.To("supplier_profile", SupplierProfile.Type).
+			Unique().
+			Field("supplier_profile_id"),
 		// 注意：fallback_group_id 直接作为字段使用，不定义 edge
 		// 这样允许多个分组指向同一个降级分组（M2O 关系）
 	}
@@ -187,6 +194,7 @@ func (Group) Indexes() []ent.Index {
 		index.Fields("platform"),
 		index.Fields("subscription_type"),
 		index.Fields("is_exclusive"),
+		index.Fields("supplier_profile_id"),
 		index.Fields("deleted_at"),
 		index.Fields("sort_order"),
 	}

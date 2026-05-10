@@ -34,9 +34,10 @@ func TestAuthHandlerRespondWithTokenPairIncludesSupplierStatus(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
-		name              string
-		status            string
-		hasSupplierAccess bool
+		name                     string
+		status                   string
+		accountSubmissionEnabled bool
+		hasSupplierAccess        bool
 	}{
 		{
 			name:              "pending supplier",
@@ -47,6 +48,12 @@ func TestAuthHandlerRespondWithTokenPairIncludesSupplierStatus(t *testing.T) {
 			name:              "approved supplier",
 			status:            service.SupplierStatusApproved,
 			hasSupplierAccess: true,
+		},
+		{
+			name:                     "profile text pending with approved account submission",
+			status:                   service.SupplierStatusPending,
+			accountSubmissionEnabled: true,
+			hasSupplierAccess:        true,
 		},
 	}
 
@@ -84,10 +91,11 @@ func TestAuthHandlerRespondWithTokenPairIncludesSupplierStatus(t *testing.T) {
 			supplierService := service.NewSupplierService(
 				&authSupplierRepoStub{
 					profile: &service.SupplierProfile{
-						ID:          7,
-						UserID:      user.ID,
-						CompanyName: "Supplier Co",
-						Status:      tt.status,
+						ID:                       7,
+						UserID:                   user.ID,
+						CompanyName:              "Supplier Co",
+						Status:                   tt.status,
+						AccountSubmissionEnabled: tt.accountSubmissionEnabled,
 					},
 				},
 				nil,

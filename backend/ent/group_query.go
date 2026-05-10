@@ -19,6 +19,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
+	"github.com/Wei-Shaw/sub2api/ent/supplierprofile"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 	"github.com/Wei-Shaw/sub2api/ent/user"
 	"github.com/Wei-Shaw/sub2api/ent/userallowedgroup"
@@ -38,6 +39,7 @@ type GroupQuery struct {
 	withUsageLogs         *UsageLogQuery
 	withAccounts          *AccountQuery
 	withAllowedUsers      *UserQuery
+	withSupplierProfile   *SupplierProfileQuery
 	withAccountGroups     *AccountGroupQuery
 	withUserAllowedGroups *UserAllowedGroupQuery
 	modifiers             []func(*sql.Selector)
@@ -202,6 +204,28 @@ func (_q *GroupQuery) QueryAllowedUsers() *UserQuery {
 			sqlgraph.From(group.Table, group.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, group.AllowedUsersTable, group.AllowedUsersPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySupplierProfile chains the current query on the "supplier_profile" edge.
+func (_q *GroupQuery) QuerySupplierProfile() *SupplierProfileQuery {
+	query := (&SupplierProfileClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(group.Table, group.FieldID, selector),
+			sqlgraph.To(supplierprofile.Table, supplierprofile.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, group.SupplierProfileTable, group.SupplierProfileColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -451,6 +475,7 @@ func (_q *GroupQuery) Clone() *GroupQuery {
 		withUsageLogs:         _q.withUsageLogs.Clone(),
 		withAccounts:          _q.withAccounts.Clone(),
 		withAllowedUsers:      _q.withAllowedUsers.Clone(),
+		withSupplierProfile:   _q.withSupplierProfile.Clone(),
 		withAccountGroups:     _q.withAccountGroups.Clone(),
 		withUserAllowedGroups: _q.withUserAllowedGroups.Clone(),
 		// clone intermediate query.
@@ -522,6 +547,17 @@ func (_q *GroupQuery) WithAllowedUsers(opts ...func(*UserQuery)) *GroupQuery {
 		opt(query)
 	}
 	_q.withAllowedUsers = query
+	return _q
+}
+
+// WithSupplierProfile tells the query-builder to eager-load the nodes that are connected to
+// the "supplier_profile" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *GroupQuery) WithSupplierProfile(opts ...func(*SupplierProfileQuery)) *GroupQuery {
+	query := (&SupplierProfileClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSupplierProfile = query
 	return _q
 }
 
@@ -625,13 +661,14 @@ func (_q *GroupQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Group,
 	var (
 		nodes       = []*Group{}
 		_spec       = _q.querySpec()
-		loadedTypes = [8]bool{
+		loadedTypes = [9]bool{
 			_q.withAPIKeys != nil,
 			_q.withRedeemCodes != nil,
 			_q.withSubscriptions != nil,
 			_q.withUsageLogs != nil,
 			_q.withAccounts != nil,
 			_q.withAllowedUsers != nil,
+			_q.withSupplierProfile != nil,
 			_q.withAccountGroups != nil,
 			_q.withUserAllowedGroups != nil,
 		}
@@ -696,6 +733,12 @@ func (_q *GroupQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Group,
 		if err := _q.loadAllowedUsers(ctx, query, nodes,
 			func(n *Group) { n.Edges.AllowedUsers = []*User{} },
 			func(n *Group, e *User) { n.Edges.AllowedUsers = append(n.Edges.AllowedUsers, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSupplierProfile; query != nil {
+		if err := _q.loadSupplierProfile(ctx, query, nodes, nil,
+			func(n *Group, e *SupplierProfile) { n.Edges.SupplierProfile = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -967,6 +1010,38 @@ func (_q *GroupQuery) loadAllowedUsers(ctx context.Context, query *UserQuery, no
 	}
 	return nil
 }
+func (_q *GroupQuery) loadSupplierProfile(ctx context.Context, query *SupplierProfileQuery, nodes []*Group, init func(*Group), assign func(*Group, *SupplierProfile)) error {
+	ids := make([]int64, 0, len(nodes))
+	nodeids := make(map[int64][]*Group)
+	for i := range nodes {
+		if nodes[i].SupplierProfileID == nil {
+			continue
+		}
+		fk := *nodes[i].SupplierProfileID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(supplierprofile.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "supplier_profile_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *GroupQuery) loadAccountGroups(ctx context.Context, query *AccountGroupQuery, nodes []*Group, init func(*Group), assign func(*Group, *AccountGroup)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int64]*Group)
@@ -1055,6 +1130,9 @@ func (_q *GroupQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != group.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withSupplierProfile != nil {
+			_spec.Node.AddColumnOnce(group.FieldSupplierProfileID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

@@ -221,6 +221,38 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/available-channels',
+    redirect: '/supplier-marketplace',
+  },
+  {
+    path: '/available-channels/detail',
+    redirect: '/supplier-marketplace',
+  },
+  {
+    path: '/supplier-marketplace',
+    name: 'SupplierMarketplace',
+    component: () => import('@/views/user/SupplierMarketplaceView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Supplier Marketplace',
+      titleKey: 'supplierMarketplace.title',
+      descriptionKey: 'supplierMarketplace.description'
+    }
+  },
+  {
+    path: '/supplier-marketplace/:supplierId',
+    name: 'SupplierMarketplaceDetail',
+    component: () => import('@/views/user/SupplierMarketplaceDetailView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Supplier Marketplace Detail',
+      titleKey: 'supplierMarketplace.detailTitle',
+      descriptionKey: 'supplierMarketplace.description'
+    }
+  },
+  {
+    path: '/available-channels-legacy',
     name: 'UserAvailableChannels',
     component: () => import('@/views/user/AvailableChannelsView.vue'),
     meta: {
@@ -232,7 +264,7 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/available-channels/detail',
+    path: '/available-channels-legacy/detail',
     name: 'UserAvailableChannelDetail',
     component: () => import('@/views/user/AvailableChannelDetailView.vue'),
     meta: {
@@ -380,6 +412,14 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/supplier/available-channels',
+    redirect: '/supplier-marketplace',
+  },
+  {
+    path: '/supplier/available-channels/detail',
+    redirect: '/supplier-marketplace',
+  },
+  {
+    path: '/supplier/available-channels-legacy',
     name: 'SupplierAvailableChannels',
     component: () => import('@/views/user/AvailableChannelsView.vue'),
     meta: {
@@ -391,7 +431,7 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/supplier/available-channels/detail',
+    path: '/supplier/available-channels-legacy/detail',
     name: 'SupplierAvailableChannelDetail',
     component: () => import('@/views/user/AvailableChannelDetailView.vue'),
     meta: {
@@ -832,7 +872,7 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
-  if (authStore.isAdmin && to.path.startsWith('/supplier')) {
+  if (authStore.isAdmin && (to.path === '/supplier' || to.path.startsWith('/supplier/'))) {
     next('/admin/dashboard')
     return
   }

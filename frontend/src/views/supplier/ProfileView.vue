@@ -3,7 +3,7 @@
     <div class="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">供应商主体资料</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-dark-400">资料提交后由管理员审核。审核通过后账号才可提交并进入后续审核流程。</p>
+        <p class="mt-1 text-sm text-gray-500 dark:text-dark-400">{{ profileHint }}</p>
       </div>
 
       <div v-if="profile" class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-dark-700 dark:bg-dark-800">
@@ -68,6 +68,12 @@ const profileStatusLabels: Record<string, string> = {
   rejected: '已驳回'
 }
 const statusLabel = computed(() => profileStatusLabels[profile.value?.status || ''] || '未提交')
+const profileHint = computed(() => {
+  if (profile.value?.account_submission_enabled) {
+    return '修改主体资料只进入资料文本审核，不影响继续提交上游账号。'
+  }
+  return '资料首次审核通过后，账号才可提交并进入后续审核流程。'
+})
 const statusClass = computed(() => {
   if (profile.value?.status === 'approved') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
   if (profile.value?.status === 'rejected') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
@@ -89,9 +95,15 @@ async function loadProfile() {
 
 async function submit() {
   saving.value = true
+  const hadAccountSubmissionAccess = profile.value?.account_submission_enabled === true
   try {
-    fillProfile(await supplierAPI.updateProfile(form))
-    appStore.showSuccess('资料已提交，等待管理员审核')
+    const updated = await supplierAPI.updateProfile(form)
+    fillProfile(updated)
+    appStore.showSuccess(
+      hadAccountSubmissionAccess || updated.account_submission_enabled === true
+        ? '资料已提交，账号提交权限不受影响'
+        : '资料已提交，等待管理员审核'
+    )
   } finally {
     saving.value = false
   }

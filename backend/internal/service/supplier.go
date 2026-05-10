@@ -36,22 +36,30 @@ var (
 	ErrSupplierPricingInvalid      = infraerrors.BadRequest("SUPPLIER_PRICING_INVALID", "invalid supplier pricing")
 )
 
+var supplierMarketplacePlatforms = []string{
+	PlatformAnthropic,
+	PlatformOpenAI,
+	PlatformGemini,
+	PlatformAntigravity,
+}
+
 type SupplierProfile struct {
-	ID               int64
-	UserID           int64
-	CompanyName      string
-	ContactName      string
-	ContactEmail     string
-	ContactPhone     string
-	Status           string
-	SettlementConfig map[string]any
-	Notes            string
-	ReviewNote       string
-	ReviewedAt       *time.Time
-	ReviewedBy       *int64
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	User             *User
+	ID                       int64
+	UserID                   int64
+	CompanyName              string
+	ContactName              string
+	ContactEmail             string
+	ContactPhone             string
+	Status                   string
+	AccountSubmissionEnabled bool
+	SettlementConfig         map[string]any
+	Notes                    string
+	ReviewNote               string
+	ReviewedAt               *time.Time
+	ReviewedBy               *int64
+	CreatedAt                time.Time
+	UpdatedAt                time.Time
+	User                     *User
 }
 
 func isSupplierPricingNotFound(err error) bool {
@@ -78,7 +86,6 @@ type SupplierAccountInput struct {
 	Concurrency        int                   `json:"concurrency"`
 	LoadFactor         *int                  `json:"load_factor"`
 	Priority           int                   `json:"priority"`
-	RateMultiplier     *float64              `json:"rate_multiplier"`
 	GroupIDs           []int64               `json:"group_ids"`
 	ExpiresAt          *int64                `json:"expires_at"`
 	AutoPauseOnExpired *bool                 `json:"auto_pause_on_expired"`
@@ -256,15 +263,24 @@ func NewSupplierService(supplierRepo SupplierRepository, accountRepo SupplierAcc
 }
 
 func (s *SupplierService) ApplyProfile(ctx context.Context, userID int64, input SupplierProfileInput) (*SupplierProfile, error) {
+	accountSubmissionEnabled := false
+	existing, err := s.supplierRepo.GetProfileByUserID(ctx, userID)
+	if err != nil && !infraerrors.IsNotFound(err) {
+		return nil, err
+	}
+	if existing != nil {
+		accountSubmissionEnabled = existing.AccountSubmissionEnabled || existing.Status == SupplierStatusApproved
+	}
 	profile := &SupplierProfile{
-		UserID:           userID,
-		CompanyName:      strings.TrimSpace(input.CompanyName),
-		ContactName:      strings.TrimSpace(input.ContactName),
-		ContactEmail:     strings.TrimSpace(input.ContactEmail),
-		ContactPhone:     strings.TrimSpace(input.ContactPhone),
-		Notes:            strings.TrimSpace(input.Notes),
-		SettlementConfig: input.SettlementConfig,
-		Status:           SupplierStatusPending,
+		UserID:                   userID,
+		CompanyName:              strings.TrimSpace(input.CompanyName),
+		ContactName:              strings.TrimSpace(input.ContactName),
+		ContactEmail:             strings.TrimSpace(input.ContactEmail),
+		ContactPhone:             strings.TrimSpace(input.ContactPhone),
+		Notes:                    strings.TrimSpace(input.Notes),
+		SettlementConfig:         input.SettlementConfig,
+		Status:                   SupplierStatusPending,
+		AccountSubmissionEnabled: accountSubmissionEnabled,
 	}
 	if profile.CompanyName == "" {
 		return nil, infraerrors.BadRequest("SUPPLIER_COMPANY_REQUIRED", "company name is required")
@@ -292,6 +308,11 @@ func (s *SupplierService) ReviewProfile(ctx context.Context, supplierID int64, r
 	if err != nil {
 		return nil, err
 	}
+	if profile.Status == SupplierStatusApproved {
+		if err := s.ensureSupplierMarketplaceGroups(ctx, profile); err != nil {
+			return nil, err
+		}
+	}
 	return profile, nil
 }
 
@@ -303,10 +324,17 @@ func (s *SupplierService) GetApprovedProfileByUserID(ctx context.Context, userID
 		}
 		return nil, false, err
 	}
-	if profile == nil || profile.Status != SupplierStatusApproved {
+	if profile == nil || !supplierAccountSubmissionEnabled(profile) {
 		return profile, false, nil
 	}
 	return profile, true, nil
+}
+
+func supplierAccountSubmissionEnabled(profile *SupplierProfile) bool {
+	if profile == nil {
+		return false
+	}
+	return profile.AccountSubmissionEnabled || profile.Status == SupplierStatusApproved
 }
 
 func (s *SupplierService) ListMyAccounts(ctx context.Context, userID int64, params pagination.PaginationParams) ([]Account, *pagination.PaginationResult, error) {
@@ -382,8 +410,8 @@ func (s *SupplierService) TestSupplierAccount(c *gin.Context, userID int64, inpu
 	if err != nil {
 		return nil, err
 	}
-	if profile.Status != SupplierStatusApproved {
-		return nil, infraerrors.Forbidden("SUPPLIER_NOT_APPROVED", "supplier profile is not approved")
+	if !supplierAccountSubmissionEnabled(profile) {
+		return nil, infraerrors.Forbidden("SUPPLIER_NOT_APPROVED", "supplier account submission is not approved")
 	}
 	input.SupplierAccountInput = sanitizeSupplierAccountInput(input.SupplierAccountInput)
 	if err := validateSupplierAccountInput(input.SupplierAccountInput); err != nil {
@@ -473,8 +501,8 @@ func (s *SupplierService) CreateSupplierAccount(ctx context.Context, userID int6
 	if err != nil {
 		return nil, err
 	}
-	if profile.Status != SupplierStatusApproved {
-		return nil, infraerrors.Forbidden("SUPPLIER_NOT_APPROVED", "supplier profile is not approved")
+	if !supplierAccountSubmissionEnabled(profile) {
+		return nil, infraerrors.Forbidden("SUPPLIER_NOT_APPROVED", "supplier account submission is not approved")
 	}
 	input = sanitizeSupplierAccountInput(input)
 	if err := validateSupplierAccountInput(input); err != nil {
@@ -513,7 +541,6 @@ func (s *SupplierService) CreateSupplierAccount(ctx context.Context, userID int6
 		Concurrency:          concurrency,
 		LoadFactor:           nil,
 		Priority:             priority,
-		RateMultiplier:       input.RateMultiplier,
 		Status:               StatusActive,
 		OwnerType:            AccountOwnerTypeSupplier,
 		SupplierID:           &profile.ID,
@@ -593,9 +620,6 @@ func (s *SupplierService) UpdateSupplierAccount(ctx context.Context, userID int6
 	}
 	account.LoadFactor = nil
 	account.Priority = 50
-	if input.RateMultiplier != nil {
-		account.RateMultiplier = input.RateMultiplier
-	}
 	if err := s.validateSupplierAccountSuggestions(ctx, input); err != nil {
 		return nil, err
 	}
@@ -871,9 +895,6 @@ func sanitizeSupplierAccountInput(input SupplierAccountInput) SupplierAccountInp
 }
 
 func (s *SupplierService) validateSupplierAccountSuggestions(ctx context.Context, input SupplierAccountInput) error {
-	if input.RateMultiplier != nil && *input.RateMultiplier < 0 {
-		return infraerrors.BadRequest("SUPPLIER_RATE_MULTIPLIER_INVALID", "rate_multiplier must be >= 0")
-	}
 	if input.LoadFactor != nil && *input.LoadFactor > 10000 {
 		return infraerrors.BadRequest("SUPPLIER_LOAD_FACTOR_INVALID", "load_factor must be <= 10000")
 	}
@@ -955,7 +976,6 @@ func supplierInputToTransientAccount(input SupplierAccountInput, supplierID int6
 		Extra:              input.Extra,
 		Concurrency:        concurrency,
 		Priority:           50,
-		RateMultiplier:     input.RateMultiplier,
 		Status:             StatusActive,
 		OwnerType:          AccountOwnerTypeSupplier,
 		SupplierID:         &supplierID,
@@ -1096,16 +1116,19 @@ func (s *SupplierService) ApproveAccount(ctx context.Context, accountID int64, r
 	if account.OwnerType != AccountOwnerTypeSupplier || account.SupplierID == nil {
 		return nil, infraerrors.BadRequest("SUPPLIER_ACCOUNT_REQUIRED", "account is not a supplier account")
 	}
-	groupIDs := input.GroupIDs
-	if len(groupIDs) > 0 {
-		if err := validateSupplierGroupIDs(ctx, s.groupRepo, groupIDs); err != nil {
-			return nil, err
-		}
-	} else {
-		groupIDs, err = defaultSupplierGroupIDs(ctx, s.groupRepo, account.Platform)
-		if err != nil {
-			return nil, err
-		}
+	profile, err := s.supplierRepo.GetProfileByID(ctx, *account.SupplierID)
+	if err != nil {
+		return nil, err
+	}
+	if !supplierAccountSubmissionEnabled(profile) {
+		return nil, infraerrors.BadRequest("SUPPLIER_PROFILE_NOT_APPROVED", "supplier account submission must be approved before approving supplier account")
+	}
+	if err := s.ensureSupplierMarketplaceGroups(ctx, profile); err != nil {
+		return nil, err
+	}
+	groupIDs, err := supplierOwnedGroupIDByPlatform(ctx, s.groupRepo, *account.SupplierID, account.Platform)
+	if err != nil {
+		return nil, err
 	}
 	if input.Priority != nil {
 		account.Priority = *input.Priority
@@ -1437,6 +1460,90 @@ func defaultSupplierGroupIDs(ctx context.Context, groupRepo GroupRepository, pla
 	}
 	for _, group := range groups {
 		if group.SubscriptionType == SubscriptionTypeStandard {
+			return []int64{group.ID}, nil
+		}
+	}
+	return nil, ErrSupplierDefaultGroupMissing
+}
+
+func supplierMarketplacePlatformLabel(platform string) string {
+	switch strings.TrimSpace(platform) {
+	case PlatformAnthropic:
+		return "Anthropic"
+	case PlatformOpenAI:
+		return "OpenAI"
+	case PlatformGemini:
+		return "Gemini"
+	case PlatformAntigravity:
+		return "Antigravity"
+	default:
+		return strings.TrimSpace(platform)
+	}
+}
+
+func supplierMarketplaceGroupName(profile *SupplierProfile, platform string) string {
+	companyName := strings.TrimSpace(profile.CompanyName)
+	if companyName == "" {
+		companyName = "供应商"
+	}
+	return companyName + " " + supplierMarketplacePlatformLabel(platform)
+}
+
+func (s *SupplierService) ensureSupplierMarketplaceGroups(ctx context.Context, profile *SupplierProfile) error {
+	if profile == nil || profile.ID <= 0 {
+		return ErrSupplierProfileNotFound
+	}
+
+	groups, err := s.groupRepo.ListActive(ctx)
+	if err != nil {
+		return err
+	}
+
+	existingByPlatform := make(map[string]struct{}, len(supplierMarketplacePlatforms))
+	for i := range groups {
+		group := groups[i]
+		if group.SupplierProfileID == nil || *group.SupplierProfileID != profile.ID {
+			continue
+		}
+		if !group.IsSubscriptionType() || !group.IsActive() {
+			continue
+		}
+		existingByPlatform[group.Platform] = struct{}{}
+	}
+
+	for _, platform := range supplierMarketplacePlatforms {
+		if _, ok := existingByPlatform[platform]; ok {
+			continue
+		}
+		supplierID := profile.ID
+		group := &Group{
+			Name:              supplierMarketplaceGroupName(profile, platform),
+			Description:       strings.TrimSpace(profile.Notes),
+			Platform:          platform,
+			RateMultiplier:    1.0,
+			IsExclusive:       true,
+			Status:            StatusActive,
+			SubscriptionType:  SubscriptionTypeSubscription,
+			SupplierProfileID: &supplierID,
+		}
+		if err := s.groupRepo.Create(ctx, group); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func supplierOwnedGroupIDByPlatform(ctx context.Context, groupRepo GroupRepository, supplierID int64, platform string) ([]int64, error) {
+	groups, err := groupRepo.ListActiveByPlatform(ctx, platform)
+	if err != nil {
+		return nil, err
+	}
+	for _, group := range groups {
+		if group.SupplierProfileID == nil || *group.SupplierProfileID != supplierID {
+			continue
+		}
+		if group.IsSubscriptionType() && group.IsActive() {
 			return []int64{group.ID}, nil
 		}
 	}

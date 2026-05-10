@@ -210,6 +210,11 @@ func RpmLimit(v int) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldRpmLimit, v))
 }
 
+// SupplierProfileID applies equality check predicate on the "supplier_profile_id" field. It's identical to SupplierProfileIDEQ.
+func SupplierProfileID(v int64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldSupplierProfileID, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldCreatedAt, v))
@@ -1440,6 +1445,36 @@ func RpmLimitLTE(v int) predicate.Group {
 	return predicate.Group(sql.FieldLTE(FieldRpmLimit, v))
 }
 
+// SupplierProfileIDEQ applies the EQ predicate on the "supplier_profile_id" field.
+func SupplierProfileIDEQ(v int64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldSupplierProfileID, v))
+}
+
+// SupplierProfileIDNEQ applies the NEQ predicate on the "supplier_profile_id" field.
+func SupplierProfileIDNEQ(v int64) predicate.Group {
+	return predicate.Group(sql.FieldNEQ(FieldSupplierProfileID, v))
+}
+
+// SupplierProfileIDIn applies the In predicate on the "supplier_profile_id" field.
+func SupplierProfileIDIn(vs ...int64) predicate.Group {
+	return predicate.Group(sql.FieldIn(FieldSupplierProfileID, vs...))
+}
+
+// SupplierProfileIDNotIn applies the NotIn predicate on the "supplier_profile_id" field.
+func SupplierProfileIDNotIn(vs ...int64) predicate.Group {
+	return predicate.Group(sql.FieldNotIn(FieldSupplierProfileID, vs...))
+}
+
+// SupplierProfileIDIsNil applies the IsNil predicate on the "supplier_profile_id" field.
+func SupplierProfileIDIsNil() predicate.Group {
+	return predicate.Group(sql.FieldIsNull(FieldSupplierProfileID))
+}
+
+// SupplierProfileIDNotNil applies the NotNil predicate on the "supplier_profile_id" field.
+func SupplierProfileIDNotNil() predicate.Group {
+	return predicate.Group(sql.FieldNotNull(FieldSupplierProfileID))
+}
+
 // HasAPIKeys applies the HasEdge predicate on the "api_keys" edge.
 func HasAPIKeys() predicate.Group {
 	return predicate.Group(func(s *sql.Selector) {
@@ -1570,6 +1605,29 @@ func HasAllowedUsers() predicate.Group {
 func HasAllowedUsersWith(preds ...predicate.User) predicate.Group {
 	return predicate.Group(func(s *sql.Selector) {
 		step := newAllowedUsersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSupplierProfile applies the HasEdge predicate on the "supplier_profile" edge.
+func HasSupplierProfile() predicate.Group {
+	return predicate.Group(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, SupplierProfileTable, SupplierProfileColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSupplierProfileWith applies the HasEdge predicate on the "supplier_profile" edge with a given conditions (other predicates).
+func HasSupplierProfileWith(preds ...predicate.SupplierProfile) predicate.Group {
+	return predicate.Group(func(s *sql.Selector) {
+		step := newSupplierProfileStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

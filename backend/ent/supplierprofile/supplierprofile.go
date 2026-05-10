@@ -26,6 +26,8 @@ const (
 	FieldContactPhone = "contact_phone"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldAccountSubmissionEnabled holds the string denoting the account_submission_enabled field in the database.
+	FieldAccountSubmissionEnabled = "account_submission_enabled"
 	// FieldSettlementConfig holds the string denoting the settlement_config field in the database.
 	FieldSettlementConfig = "settlement_config"
 	// FieldNotes holds the string denoting the notes field in the database.
@@ -80,6 +82,7 @@ var Columns = []string{
 	FieldContactEmail,
 	FieldContactPhone,
 	FieldStatus,
+	FieldAccountSubmissionEnabled,
 	FieldSettlementConfig,
 	FieldNotes,
 	FieldReviewNote,
@@ -118,6 +121,8 @@ var (
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
 	StatusValidator func(string) error
+	// DefaultAccountSubmissionEnabled holds the default value on creation for the "account_submission_enabled" field.
+	DefaultAccountSubmissionEnabled bool
 	// DefaultSettlementConfig holds the default value on creation for the "settlement_config" field.
 	DefaultSettlementConfig func() map[string]interface{}
 	// DefaultNotes holds the default value on creation for the "notes" field.
@@ -168,6 +173,11 @@ func ByContactPhone(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByAccountSubmissionEnabled orders the results by the account_submission_enabled field.
+func ByAccountSubmissionEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAccountSubmissionEnabled, opts...).ToFunc()
 }
 
 // ByNotes orders the results by the notes field.

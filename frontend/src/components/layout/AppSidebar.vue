@@ -669,7 +669,6 @@ const ChevronDownIcon = {
 // yet. Admin-only flags (not in public settings) stay inline below.
 const flagChannelMonitor = makeSidebarFlag(FeatureFlags.channelMonitor)
 const flagPayment = makeSidebarFlag(FeatureFlags.payment)
-const flagAvailableChannels = makeSidebarFlag(FeatureFlags.availableChannels)
 const flagAffiliate = makeSidebarFlag(FeatureFlags.affiliate)
 const flagRiskControl = makeSidebarFlag(FeatureFlags.riskControl)
 const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
@@ -688,7 +687,7 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
   items.push(
     { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },
     { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
-    { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
+    { path: '/supplier-marketplace', label: t('nav.supplierMarketplace'), icon: ChannelIcon, hideInSimpleMode: true },
     { path: '/monitor', label: t('nav.channelStatus'), icon: SignalIcon, featureFlag: flagChannelMonitor },
     { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true },
     { path: '/purchase', label: t('nav.buySubscription'), icon: RechargeSubscriptionIcon, hideInSimpleMode: true, featureFlag: flagPayment },
@@ -727,7 +726,7 @@ const supplierNavItems = computed((): NavItem[] => {
   return [
     { path: '/supplier/dashboard', label: '供应商看板', icon: DashboardIcon },
     { path: '/supplier/accounts', label: '上游账号', icon: GlobeIcon },
-    { path: '/supplier/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
+    { path: '/supplier-marketplace', label: t('nav.supplierMarketplace'), icon: ChannelIcon, hideInSimpleMode: true },
     { path: '/supplier/usage', label: '用量归属', icon: ChartIcon },
     profileItem,
   ]

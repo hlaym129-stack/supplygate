@@ -46,8 +46,30 @@ func (r *supplierApprovalAccountRepo) BindGroups(ctx context.Context, accountID 
 type supplierApprovalSupplierRepo struct {
 	SupplierRepository
 	pending      *SupplierAccountPricingRevision
+	profile      *SupplierProfile
 	reviewCalls  int
 	reviewStatus string
+}
+
+func (r *supplierApprovalSupplierRepo) UpdateProfileStatus(ctx context.Context, id int64, status string, reviewerID int64, reviewNote string) (*SupplierProfile, error) {
+	if r.profile == nil || r.profile.ID != id {
+		return nil, ErrSupplierProfileNotFound
+	}
+	cp := *r.profile
+	cp.Status = status
+	cp.ReviewedBy = &reviewerID
+	cp.ReviewNote = reviewNote
+	now := time.Now()
+	cp.ReviewedAt = &now
+	return &cp, nil
+}
+
+func (r *supplierApprovalSupplierRepo) GetProfileByID(ctx context.Context, id int64) (*SupplierProfile, error) {
+	if r.profile == nil || r.profile.ID != id {
+		return nil, ErrSupplierProfileNotFound
+	}
+	cp := *r.profile
+	return &cp, nil
 }
 
 func (r *supplierApprovalSupplierRepo) GetPendingPricingRevision(ctx context.Context, accountID int64) (*SupplierAccountPricingRevision, error) {
@@ -74,6 +96,8 @@ type supplierApprovalGroupRepo struct {
 	GroupRepository
 	byID              map[int64]*Group
 	byPlatform        map[string][]Group
+	active            []Group
+	created           []Group
 	getByIDCalls      []int64
 	listPlatformCalls []string
 }
@@ -124,11 +148,18 @@ func supplierApprovalPendingRevision(accountID int64) *SupplierAccountPricingRev
 func TestApproveAccount_DefaultGroupByPlatform(t *testing.T) {
 	account := supplierApprovalAccount(PlatformOpenAI)
 	accountRepo := &supplierApprovalAccountRepo{account: account}
-	supplierRepo := &supplierApprovalSupplierRepo{pending: supplierApprovalPendingRevision(account.ID)}
+	supplierID := int64(99)
+	supplierRepo := &supplierApprovalSupplierRepo{
+		pending: supplierApprovalPendingRevision(account.ID),
+		profile: &SupplierProfile{ID: supplierID, CompanyName: "Acme", Status: SupplierStatusApproved},
+	}
 	groupRepo := &supplierApprovalGroupRepo{
+		active: []Group{
+			{ID: 8, Platform: PlatformOpenAI, Status: StatusActive, SubscriptionType: SubscriptionTypeSubscription, SupplierProfileID: &supplierID},
+		},
 		byPlatform: map[string][]Group{
 			PlatformOpenAI: {
-				{ID: 8, Platform: PlatformOpenAI, Status: StatusActive, SubscriptionType: SubscriptionTypeSubscription},
+				{ID: 8, Platform: PlatformOpenAI, Status: StatusActive, SubscriptionType: SubscriptionTypeSubscription, SupplierProfileID: &supplierID},
 				{ID: 2, Platform: PlatformOpenAI, Status: StatusActive, SubscriptionType: SubscriptionTypeStandard},
 			},
 		},
@@ -138,15 +169,15 @@ func TestApproveAccount_DefaultGroupByPlatform(t *testing.T) {
 		ApproveAccount(context.Background(), account.ID, 501, SupplierAccountApprovalInput{})
 
 	require.NoError(t, err)
-	require.Equal(t, []int64{2}, out.GroupIDs)
+	require.Equal(t, []int64{8}, out.GroupIDs)
 	require.Equal(t, []string{PlatformOpenAI}, groupRepo.listPlatformCalls)
 	require.NotNil(t, accountRepo.updated)
 	require.Equal(t, AccountApprovalStatusApproved, accountRepo.updated.ApprovalStatus)
 	require.True(t, accountRepo.updated.Schedulable)
-	require.Equal(t, []int64{2}, accountRepo.updated.GroupIDs)
+	require.Equal(t, []int64{8}, accountRepo.updated.GroupIDs)
 	require.Equal(t, 1, accountRepo.bindCalls)
 	require.Equal(t, int64(7), accountRepo.boundAccountID)
-	require.Equal(t, []int64{2}, accountRepo.boundGroupIDs)
+	require.Equal(t, []int64{8}, accountRepo.boundGroupIDs)
 	require.Equal(t, 1, supplierRepo.reviewCalls)
 	require.Equal(t, SupplierPricingRevisionStatusApproved, supplierRepo.reviewStatus)
 }
@@ -154,11 +185,18 @@ func TestApproveAccount_DefaultGroupByPlatform(t *testing.T) {
 func TestApproveAccount_DefaultAnthropicGroupUsesFirstSortedStandardGroup(t *testing.T) {
 	account := supplierApprovalAccount(PlatformAnthropic)
 	accountRepo := &supplierApprovalAccountRepo{account: account}
-	supplierRepo := &supplierApprovalSupplierRepo{pending: supplierApprovalPendingRevision(account.ID)}
+	supplierID := int64(99)
+	supplierRepo := &supplierApprovalSupplierRepo{
+		pending: supplierApprovalPendingRevision(account.ID),
+		profile: &SupplierProfile{ID: supplierID, CompanyName: "Acme", Status: SupplierStatusApproved},
+	}
 	groupRepo := &supplierApprovalGroupRepo{
+		active: []Group{
+			{ID: 3, Name: "Claude 系列-余额", Platform: PlatformAnthropic, Status: StatusActive, SubscriptionType: SubscriptionTypeSubscription, SupplierProfileID: &supplierID, SortOrder: 0},
+		},
 		byPlatform: map[string][]Group{
 			PlatformAnthropic: {
-				{ID: 3, Name: "Claude 系列-余额", Platform: PlatformAnthropic, Status: StatusActive, SubscriptionType: SubscriptionTypeStandard, SortOrder: 0},
+				{ID: 3, Name: "Claude 系列-余额", Platform: PlatformAnthropic, Status: StatusActive, SubscriptionType: SubscriptionTypeSubscription, SupplierProfileID: &supplierID, SortOrder: 0},
 				{ID: 1, Name: "default", Platform: PlatformAnthropic, Status: StatusActive, SubscriptionType: SubscriptionTypeStandard, SortOrder: 1},
 			},
 		},
@@ -172,17 +210,24 @@ func TestApproveAccount_DefaultAnthropicGroupUsesFirstSortedStandardGroup(t *tes
 	require.Equal(t, []int64{3}, accountRepo.boundGroupIDs)
 }
 
-func TestApproveAccount_ManualGroupsOverrideDefaultGroup(t *testing.T) {
+func TestApproveAccount_IgnoresManualGroupsAndUsesSupplierOwnedPlatformGroup(t *testing.T) {
 	account := supplierApprovalAccount(PlatformOpenAI)
 	accountRepo := &supplierApprovalAccountRepo{account: account}
-	supplierRepo := &supplierApprovalSupplierRepo{pending: supplierApprovalPendingRevision(account.ID)}
+	supplierID := int64(99)
+	supplierRepo := &supplierApprovalSupplierRepo{
+		pending: supplierApprovalPendingRevision(account.ID),
+		profile: &SupplierProfile{ID: supplierID, CompanyName: "Acme", Status: SupplierStatusApproved},
+	}
 	groupRepo := &supplierApprovalGroupRepo{
+		active: []Group{
+			{ID: 2, Platform: PlatformOpenAI, Status: StatusActive, SubscriptionType: SubscriptionTypeSubscription, SupplierProfileID: &supplierID},
+		},
 		byID: map[int64]*Group{
 			9: {ID: 9, Platform: PlatformAnthropic, Status: StatusActive, SubscriptionType: SubscriptionTypeStandard},
 		},
 		byPlatform: map[string][]Group{
 			PlatformOpenAI: {
-				{ID: 2, Platform: PlatformOpenAI, Status: StatusActive, SubscriptionType: SubscriptionTypeStandard},
+				{ID: 2, Platform: PlatformOpenAI, Status: StatusActive, SubscriptionType: SubscriptionTypeSubscription, SupplierProfileID: &supplierID},
 			},
 		},
 	}
@@ -191,16 +236,19 @@ func TestApproveAccount_ManualGroupsOverrideDefaultGroup(t *testing.T) {
 		ApproveAccount(context.Background(), account.ID, 501, SupplierAccountApprovalInput{GroupIDs: []int64{9}})
 
 	require.NoError(t, err)
-	require.Equal(t, []int64{9}, out.GroupIDs)
-	require.Equal(t, []int64{9}, accountRepo.boundGroupIDs)
-	require.Equal(t, []int64{9}, groupRepo.getByIDCalls)
-	require.Empty(t, groupRepo.listPlatformCalls)
+	require.Equal(t, []int64{2}, out.GroupIDs)
+	require.Equal(t, []int64{2}, accountRepo.boundGroupIDs)
+	require.Empty(t, groupRepo.getByIDCalls)
+	require.Equal(t, []string{PlatformOpenAI}, groupRepo.listPlatformCalls)
 }
 
 func TestApproveAccount_NoDefaultGroupFailsWithoutMutation(t *testing.T) {
 	account := supplierApprovalAccount(PlatformOpenAI)
 	accountRepo := &supplierApprovalAccountRepo{account: account}
-	supplierRepo := &supplierApprovalSupplierRepo{pending: supplierApprovalPendingRevision(account.ID)}
+	supplierRepo := &supplierApprovalSupplierRepo{
+		pending: supplierApprovalPendingRevision(account.ID),
+		profile: &SupplierProfile{ID: 99, CompanyName: "Acme", Status: SupplierStatusApproved},
+	}
 	groupRepo := &supplierApprovalGroupRepo{
 		byPlatform: map[string][]Group{
 			PlatformOpenAI: {
@@ -219,11 +267,64 @@ func TestApproveAccount_NoDefaultGroupFailsWithoutMutation(t *testing.T) {
 	require.Zero(t, supplierRepo.reviewCalls)
 }
 
+func TestReviewProfile_ApprovedEnsuresMarketplaceGroups(t *testing.T) {
+	supplierID := int64(99)
+	reviewerID := int64(501)
+	supplierRepo := &supplierApprovalSupplierRepo{
+		profile: &SupplierProfile{
+			ID:          supplierID,
+			CompanyName: "Acme",
+			Notes:       "Public intro",
+			Status:      SupplierStatusPending,
+		},
+	}
+	groupRepo := &supplierApprovalGroupRepo{
+		active: []Group{
+			{
+				ID:                8,
+				Name:              "Acme OpenAI",
+				Platform:          PlatformOpenAI,
+				Status:            StatusActive,
+				SubscriptionType:  SubscriptionTypeSubscription,
+				IsExclusive:       true,
+				SupplierProfileID: &supplierID,
+				RateMultiplier:    1,
+			},
+		},
+	}
+
+	profile, err := newSupplierApprovalService(&supplierApprovalAccountRepo{}, supplierRepo, groupRepo).
+		ReviewProfile(context.Background(), supplierID, reviewerID, SupplierStatusApproved, "ok")
+
+	require.NoError(t, err)
+	require.Equal(t, SupplierStatusApproved, profile.Status)
+	require.Len(t, groupRepo.created, 3)
+
+	createdByPlatform := make(map[string]Group, len(groupRepo.created))
+	for _, group := range groupRepo.created {
+		createdByPlatform[group.Platform] = group
+		require.Equal(t, supplierID, *group.SupplierProfileID)
+		require.Equal(t, StatusActive, group.Status)
+		require.Equal(t, SubscriptionTypeSubscription, group.SubscriptionType)
+		require.True(t, group.IsExclusive)
+		require.Equal(t, 1.0, group.RateMultiplier)
+		require.Equal(t, "Public intro", group.Description)
+	}
+	require.Equal(t, "Acme Anthropic", createdByPlatform[PlatformAnthropic].Name)
+	require.Equal(t, "Acme Gemini", createdByPlatform[PlatformGemini].Name)
+	require.Equal(t, "Acme Antigravity", createdByPlatform[PlatformAntigravity].Name)
+	require.NotContains(t, createdByPlatform, PlatformOpenAI)
+}
+
 var _ SupplierAccountRepository = (*supplierApprovalAccountRepo)(nil)
 var _ SupplierRepository = (*supplierApprovalSupplierRepo)(nil)
 var _ GroupRepository = (*supplierApprovalGroupRepo)(nil)
 
-func (r *supplierApprovalGroupRepo) Create(context.Context, *Group) error { return nil }
+func (r *supplierApprovalGroupRepo) Create(ctx context.Context, group *Group) error {
+	cp := *group
+	r.created = append(r.created, cp)
+	return nil
+}
 func (r *supplierApprovalGroupRepo) GetByIDLite(context.Context, int64) (*Group, error) {
 	return nil, nil
 }
@@ -239,7 +340,7 @@ func (r *supplierApprovalGroupRepo) ListWithFilters(context.Context, pagination.
 	return nil, nil, nil
 }
 func (r *supplierApprovalGroupRepo) ListActive(context.Context) ([]Group, error) {
-	return nil, nil
+	return append([]Group(nil), r.active...), nil
 }
 func (r *supplierApprovalGroupRepo) ExistsByName(context.Context, string) (bool, error) {
 	return false, nil

@@ -15,6 +15,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
+	"github.com/Wei-Shaw/sub2api/ent/supplierprofile"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 	"github.com/Wei-Shaw/sub2api/ent/user"
 	"github.com/Wei-Shaw/sub2api/ent/usersubscription"
@@ -481,6 +482,20 @@ func (_c *GroupCreate) SetNillableRpmLimit(v *int) *GroupCreate {
 	return _c
 }
 
+// SetSupplierProfileID sets the "supplier_profile_id" field.
+func (_c *GroupCreate) SetSupplierProfileID(v int64) *GroupCreate {
+	_c.mutation.SetSupplierProfileID(v)
+	return _c
+}
+
+// SetNillableSupplierProfileID sets the "supplier_profile_id" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableSupplierProfileID(v *int64) *GroupCreate {
+	if v != nil {
+		_c.SetSupplierProfileID(*v)
+	}
+	return _c
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_c *GroupCreate) AddAPIKeyIDs(ids ...int64) *GroupCreate {
 	_c.mutation.AddAPIKeyIDs(ids...)
@@ -569,6 +584,11 @@ func (_c *GroupCreate) AddAllowedUsers(v ...*User) *GroupCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddAllowedUserIDs(ids...)
+}
+
+// SetSupplierProfile sets the "supplier_profile" edge to the SupplierProfile entity.
+func (_c *GroupCreate) SetSupplierProfile(v *SupplierProfile) *GroupCreate {
+	return _c.SetSupplierProfileID(v.ID)
 }
 
 // Mutation returns the GroupMutation object of the builder.
@@ -1066,6 +1086,23 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 		createE.defaults()
 		_, specE := createE.createSpec()
 		edge.Target.Fields = specE.Fields
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SupplierProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   group.SupplierProfileTable,
+			Columns: []string{group.SupplierProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(supplierprofile.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SupplierProfileID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -1657,6 +1694,24 @@ func (u *GroupUpsert) UpdateRpmLimit() *GroupUpsert {
 // AddRpmLimit adds v to the "rpm_limit" field.
 func (u *GroupUpsert) AddRpmLimit(v int) *GroupUpsert {
 	u.Add(group.FieldRpmLimit, v)
+	return u
+}
+
+// SetSupplierProfileID sets the "supplier_profile_id" field.
+func (u *GroupUpsert) SetSupplierProfileID(v int64) *GroupUpsert {
+	u.Set(group.FieldSupplierProfileID, v)
+	return u
+}
+
+// UpdateSupplierProfileID sets the "supplier_profile_id" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateSupplierProfileID() *GroupUpsert {
+	u.SetExcluded(group.FieldSupplierProfileID)
+	return u
+}
+
+// ClearSupplierProfileID clears the value of the "supplier_profile_id" field.
+func (u *GroupUpsert) ClearSupplierProfileID() *GroupUpsert {
+	u.SetNull(group.FieldSupplierProfileID)
 	return u
 }
 
@@ -2332,6 +2387,27 @@ func (u *GroupUpsertOne) AddRpmLimit(v int) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateRpmLimit() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateRpmLimit()
+	})
+}
+
+// SetSupplierProfileID sets the "supplier_profile_id" field.
+func (u *GroupUpsertOne) SetSupplierProfileID(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetSupplierProfileID(v)
+	})
+}
+
+// UpdateSupplierProfileID sets the "supplier_profile_id" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateSupplierProfileID() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateSupplierProfileID()
+	})
+}
+
+// ClearSupplierProfileID clears the value of the "supplier_profile_id" field.
+func (u *GroupUpsertOne) ClearSupplierProfileID() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearSupplierProfileID()
 	})
 }
 
@@ -3173,6 +3249,27 @@ func (u *GroupUpsertBulk) AddRpmLimit(v int) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateRpmLimit() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateRpmLimit()
+	})
+}
+
+// SetSupplierProfileID sets the "supplier_profile_id" field.
+func (u *GroupUpsertBulk) SetSupplierProfileID(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetSupplierProfileID(v)
+	})
+}
+
+// UpdateSupplierProfileID sets the "supplier_profile_id" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateSupplierProfileID() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateSupplierProfileID()
+	})
+}
+
+// ClearSupplierProfileID clears the value of the "supplier_profile_id" field.
+func (u *GroupUpsertBulk) ClearSupplierProfileID() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearSupplierProfileID()
 	})
 }
 

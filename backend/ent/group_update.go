@@ -17,6 +17,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
+	"github.com/Wei-Shaw/sub2api/ent/supplierprofile"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 	"github.com/Wei-Shaw/sub2api/ent/user"
 	"github.com/Wei-Shaw/sub2api/ent/usersubscription"
@@ -637,6 +638,26 @@ func (_u *GroupUpdate) AddRpmLimit(v int) *GroupUpdate {
 	return _u
 }
 
+// SetSupplierProfileID sets the "supplier_profile_id" field.
+func (_u *GroupUpdate) SetSupplierProfileID(v int64) *GroupUpdate {
+	_u.mutation.SetSupplierProfileID(v)
+	return _u
+}
+
+// SetNillableSupplierProfileID sets the "supplier_profile_id" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableSupplierProfileID(v *int64) *GroupUpdate {
+	if v != nil {
+		_u.SetSupplierProfileID(*v)
+	}
+	return _u
+}
+
+// ClearSupplierProfileID clears the value of the "supplier_profile_id" field.
+func (_u *GroupUpdate) ClearSupplierProfileID() *GroupUpdate {
+	_u.mutation.ClearSupplierProfileID()
+	return _u
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_u *GroupUpdate) AddAPIKeyIDs(ids ...int64) *GroupUpdate {
 	_u.mutation.AddAPIKeyIDs(ids...)
@@ -725,6 +746,11 @@ func (_u *GroupUpdate) AddAllowedUsers(v ...*User) *GroupUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddAllowedUserIDs(ids...)
+}
+
+// SetSupplierProfile sets the "supplier_profile" edge to the SupplierProfile entity.
+func (_u *GroupUpdate) SetSupplierProfile(v *SupplierProfile) *GroupUpdate {
+	return _u.SetSupplierProfileID(v.ID)
 }
 
 // Mutation returns the GroupMutation object of the builder.
@@ -856,6 +882,12 @@ func (_u *GroupUpdate) RemoveAllowedUsers(v ...*User) *GroupUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAllowedUserIDs(ids...)
+}
+
+// ClearSupplierProfile clears the "supplier_profile" edge to the SupplierProfile entity.
+func (_u *GroupUpdate) ClearSupplierProfile() *GroupUpdate {
+	_u.mutation.ClearSupplierProfile()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1410,6 +1442,35 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		createE.defaults()
 		_, specE := createE.createSpec()
 		edge.Target.Fields = specE.Fields
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SupplierProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   group.SupplierProfileTable,
+			Columns: []string{group.SupplierProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(supplierprofile.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SupplierProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   group.SupplierProfileTable,
+			Columns: []string{group.SupplierProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(supplierprofile.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
@@ -2033,6 +2094,26 @@ func (_u *GroupUpdateOne) AddRpmLimit(v int) *GroupUpdateOne {
 	return _u
 }
 
+// SetSupplierProfileID sets the "supplier_profile_id" field.
+func (_u *GroupUpdateOne) SetSupplierProfileID(v int64) *GroupUpdateOne {
+	_u.mutation.SetSupplierProfileID(v)
+	return _u
+}
+
+// SetNillableSupplierProfileID sets the "supplier_profile_id" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableSupplierProfileID(v *int64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetSupplierProfileID(*v)
+	}
+	return _u
+}
+
+// ClearSupplierProfileID clears the value of the "supplier_profile_id" field.
+func (_u *GroupUpdateOne) ClearSupplierProfileID() *GroupUpdateOne {
+	_u.mutation.ClearSupplierProfileID()
+	return _u
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by IDs.
 func (_u *GroupUpdateOne) AddAPIKeyIDs(ids ...int64) *GroupUpdateOne {
 	_u.mutation.AddAPIKeyIDs(ids...)
@@ -2121,6 +2202,11 @@ func (_u *GroupUpdateOne) AddAllowedUsers(v ...*User) *GroupUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.AddAllowedUserIDs(ids...)
+}
+
+// SetSupplierProfile sets the "supplier_profile" edge to the SupplierProfile entity.
+func (_u *GroupUpdateOne) SetSupplierProfile(v *SupplierProfile) *GroupUpdateOne {
+	return _u.SetSupplierProfileID(v.ID)
 }
 
 // Mutation returns the GroupMutation object of the builder.
@@ -2252,6 +2338,12 @@ func (_u *GroupUpdateOne) RemoveAllowedUsers(v ...*User) *GroupUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAllowedUserIDs(ids...)
+}
+
+// ClearSupplierProfile clears the "supplier_profile" edge to the SupplierProfile entity.
+func (_u *GroupUpdateOne) ClearSupplierProfile() *GroupUpdateOne {
+	_u.mutation.ClearSupplierProfile()
+	return _u
 }
 
 // Where appends a list predicates to the GroupUpdate builder.
@@ -2836,6 +2928,35 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 		createE.defaults()
 		_, specE := createE.createSpec()
 		edge.Target.Fields = specE.Fields
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SupplierProfileCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   group.SupplierProfileTable,
+			Columns: []string{group.SupplierProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(supplierprofile.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SupplierProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   group.SupplierProfileTable,
+			Columns: []string{group.SupplierProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(supplierprofile.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Group{config: _u.config}

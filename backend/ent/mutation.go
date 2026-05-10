@@ -15979,6 +15979,8 @@ type GroupMutation struct {
 	allowed_users                           map[int64]struct{}
 	removedallowed_users                    map[int64]struct{}
 	clearedallowed_users                    bool
+	supplier_profile                        *int64
+	clearedsupplier_profile                 bool
 	done                                    bool
 	oldValue                                func(context.Context) (*Group, error)
 	predicates                              []predicate.Group
@@ -17732,6 +17734,55 @@ func (m *GroupMutation) ResetRpmLimit() {
 	m.addrpm_limit = nil
 }
 
+// SetSupplierProfileID sets the "supplier_profile_id" field.
+func (m *GroupMutation) SetSupplierProfileID(i int64) {
+	m.supplier_profile = &i
+}
+
+// SupplierProfileID returns the value of the "supplier_profile_id" field in the mutation.
+func (m *GroupMutation) SupplierProfileID() (r int64, exists bool) {
+	v := m.supplier_profile
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSupplierProfileID returns the old "supplier_profile_id" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldSupplierProfileID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSupplierProfileID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSupplierProfileID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSupplierProfileID: %w", err)
+	}
+	return oldValue.SupplierProfileID, nil
+}
+
+// ClearSupplierProfileID clears the value of the "supplier_profile_id" field.
+func (m *GroupMutation) ClearSupplierProfileID() {
+	m.supplier_profile = nil
+	m.clearedFields[group.FieldSupplierProfileID] = struct{}{}
+}
+
+// SupplierProfileIDCleared returns if the "supplier_profile_id" field was cleared in this mutation.
+func (m *GroupMutation) SupplierProfileIDCleared() bool {
+	_, ok := m.clearedFields[group.FieldSupplierProfileID]
+	return ok
+}
+
+// ResetSupplierProfileID resets all changes to the "supplier_profile_id" field.
+func (m *GroupMutation) ResetSupplierProfileID() {
+	m.supplier_profile = nil
+	delete(m.clearedFields, group.FieldSupplierProfileID)
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the APIKey entity by ids.
 func (m *GroupMutation) AddAPIKeyIDs(ids ...int64) {
 	if m.api_keys == nil {
@@ -18056,6 +18107,33 @@ func (m *GroupMutation) ResetAllowedUsers() {
 	m.removedallowed_users = nil
 }
 
+// ClearSupplierProfile clears the "supplier_profile" edge to the SupplierProfile entity.
+func (m *GroupMutation) ClearSupplierProfile() {
+	m.clearedsupplier_profile = true
+	m.clearedFields[group.FieldSupplierProfileID] = struct{}{}
+}
+
+// SupplierProfileCleared reports if the "supplier_profile" edge to the SupplierProfile entity was cleared.
+func (m *GroupMutation) SupplierProfileCleared() bool {
+	return m.SupplierProfileIDCleared() || m.clearedsupplier_profile
+}
+
+// SupplierProfileIDs returns the "supplier_profile" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SupplierProfileID instead. It exists only for internal usage by the builders.
+func (m *GroupMutation) SupplierProfileIDs() (ids []int64) {
+	if id := m.supplier_profile; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSupplierProfile resets all changes to the "supplier_profile" edge.
+func (m *GroupMutation) ResetSupplierProfile() {
+	m.supplier_profile = nil
+	m.clearedsupplier_profile = false
+}
+
 // Where appends a list predicates to the GroupMutation builder.
 func (m *GroupMutation) Where(ps ...predicate.Group) {
 	m.predicates = append(m.predicates, ps...)
@@ -18090,7 +18168,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 34)
+	fields := make([]string, 0, 35)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -18193,6 +18271,9 @@ func (m *GroupMutation) Fields() []string {
 	if m.rpm_limit != nil {
 		fields = append(fields, group.FieldRpmLimit)
 	}
+	if m.supplier_profile != nil {
+		fields = append(fields, group.FieldSupplierProfileID)
+	}
 	return fields
 }
 
@@ -18269,6 +18350,8 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.MessagesDispatchModelConfig()
 	case group.FieldRpmLimit:
 		return m.RpmLimit()
+	case group.FieldSupplierProfileID:
+		return m.SupplierProfileID()
 	}
 	return nil, false
 }
@@ -18346,6 +18429,8 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldMessagesDispatchModelConfig(ctx)
 	case group.FieldRpmLimit:
 		return m.OldRpmLimit(ctx)
+	case group.FieldSupplierProfileID:
+		return m.OldSupplierProfileID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Group field %s", name)
 }
@@ -18593,6 +18678,13 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetRpmLimit(v)
 		return nil
+	case group.FieldSupplierProfileID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSupplierProfileID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Group field %s", name)
 }
@@ -18815,6 +18907,9 @@ func (m *GroupMutation) ClearedFields() []string {
 	if m.FieldCleared(group.FieldModelRouting) {
 		fields = append(fields, group.FieldModelRouting)
 	}
+	if m.FieldCleared(group.FieldSupplierProfileID) {
+		fields = append(fields, group.FieldSupplierProfileID)
+	}
 	return fields
 }
 
@@ -18861,6 +18956,9 @@ func (m *GroupMutation) ClearField(name string) error {
 		return nil
 	case group.FieldModelRouting:
 		m.ClearModelRouting()
+		return nil
+	case group.FieldSupplierProfileID:
+		m.ClearSupplierProfileID()
 		return nil
 	}
 	return fmt.Errorf("unknown Group nullable field %s", name)
@@ -18972,13 +19070,16 @@ func (m *GroupMutation) ResetField(name string) error {
 	case group.FieldRpmLimit:
 		m.ResetRpmLimit()
 		return nil
+	case group.FieldSupplierProfileID:
+		m.ResetSupplierProfileID()
+		return nil
 	}
 	return fmt.Errorf("unknown Group field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *GroupMutation) AddedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.api_keys != nil {
 		edges = append(edges, group.EdgeAPIKeys)
 	}
@@ -18996,6 +19097,9 @@ func (m *GroupMutation) AddedEdges() []string {
 	}
 	if m.allowed_users != nil {
 		edges = append(edges, group.EdgeAllowedUsers)
+	}
+	if m.supplier_profile != nil {
+		edges = append(edges, group.EdgeSupplierProfile)
 	}
 	return edges
 }
@@ -19040,13 +19144,17 @@ func (m *GroupMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case group.EdgeSupplierProfile:
+		if id := m.supplier_profile; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *GroupMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.removedapi_keys != nil {
 		edges = append(edges, group.EdgeAPIKeys)
 	}
@@ -19114,7 +19222,7 @@ func (m *GroupMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *GroupMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 7)
 	if m.clearedapi_keys {
 		edges = append(edges, group.EdgeAPIKeys)
 	}
@@ -19132,6 +19240,9 @@ func (m *GroupMutation) ClearedEdges() []string {
 	}
 	if m.clearedallowed_users {
 		edges = append(edges, group.EdgeAllowedUsers)
+	}
+	if m.clearedsupplier_profile {
+		edges = append(edges, group.EdgeSupplierProfile)
 	}
 	return edges
 }
@@ -19152,6 +19263,8 @@ func (m *GroupMutation) EdgeCleared(name string) bool {
 		return m.clearedaccounts
 	case group.EdgeAllowedUsers:
 		return m.clearedallowed_users
+	case group.EdgeSupplierProfile:
+		return m.clearedsupplier_profile
 	}
 	return false
 }
@@ -19160,6 +19273,9 @@ func (m *GroupMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *GroupMutation) ClearEdge(name string) error {
 	switch name {
+	case group.EdgeSupplierProfile:
+		m.ClearSupplierProfile()
+		return nil
 	}
 	return fmt.Errorf("unknown Group unique edge %s", name)
 }
@@ -19185,6 +19301,9 @@ func (m *GroupMutation) ResetEdge(name string) error {
 		return nil
 	case group.EdgeAllowedUsers:
 		m.ResetAllowedUsers()
+		return nil
+	case group.EdgeSupplierProfile:
+		m.ResetSupplierProfile()
 		return nil
 	}
 	return fmt.Errorf("unknown Group edge %s", name)
@@ -32918,34 +33037,35 @@ func (m *SubscriptionPlanMutation) ResetEdge(name string) error {
 // SupplierProfileMutation represents an operation that mutates the SupplierProfile nodes in the graph.
 type SupplierProfileMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *int64
-	company_name      *string
-	contact_name      *string
-	contact_email     *string
-	contact_phone     *string
-	status            *string
-	settlement_config *map[string]interface{}
-	notes             *string
-	review_note       *string
-	reviewed_at       *time.Time
-	reviewed_by       *int64
-	addreviewed_by    *int64
-	created_at        *time.Time
-	updated_at        *time.Time
-	clearedFields     map[string]struct{}
-	user              *int64
-	cleareduser       bool
-	accounts          map[int64]struct{}
-	removedaccounts   map[int64]struct{}
-	clearedaccounts   bool
-	usage_logs        map[int64]struct{}
-	removedusage_logs map[int64]struct{}
-	clearedusage_logs bool
-	done              bool
-	oldValue          func(context.Context) (*SupplierProfile, error)
-	predicates        []predicate.SupplierProfile
+	op                         Op
+	typ                        string
+	id                         *int64
+	company_name               *string
+	contact_name               *string
+	contact_email              *string
+	contact_phone              *string
+	status                     *string
+	account_submission_enabled *bool
+	settlement_config          *map[string]interface{}
+	notes                      *string
+	review_note                *string
+	reviewed_at                *time.Time
+	reviewed_by                *int64
+	addreviewed_by             *int64
+	created_at                 *time.Time
+	updated_at                 *time.Time
+	clearedFields              map[string]struct{}
+	user                       *int64
+	cleareduser                bool
+	accounts                   map[int64]struct{}
+	removedaccounts            map[int64]struct{}
+	clearedaccounts            bool
+	usage_logs                 map[int64]struct{}
+	removedusage_logs          map[int64]struct{}
+	clearedusage_logs          bool
+	done                       bool
+	oldValue                   func(context.Context) (*SupplierProfile, error)
+	predicates                 []predicate.SupplierProfile
 }
 
 var _ ent.Mutation = (*SupplierProfileMutation)(nil)
@@ -33260,6 +33380,42 @@ func (m *SupplierProfileMutation) OldStatus(ctx context.Context) (v string, err 
 // ResetStatus resets all changes to the "status" field.
 func (m *SupplierProfileMutation) ResetStatus() {
 	m.status = nil
+}
+
+// SetAccountSubmissionEnabled sets the "account_submission_enabled" field.
+func (m *SupplierProfileMutation) SetAccountSubmissionEnabled(b bool) {
+	m.account_submission_enabled = &b
+}
+
+// AccountSubmissionEnabled returns the value of the "account_submission_enabled" field in the mutation.
+func (m *SupplierProfileMutation) AccountSubmissionEnabled() (r bool, exists bool) {
+	v := m.account_submission_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountSubmissionEnabled returns the old "account_submission_enabled" field's value of the SupplierProfile entity.
+// If the SupplierProfile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SupplierProfileMutation) OldAccountSubmissionEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountSubmissionEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountSubmissionEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountSubmissionEnabled: %w", err)
+	}
+	return oldValue.AccountSubmissionEnabled, nil
+}
+
+// ResetAccountSubmissionEnabled resets all changes to the "account_submission_enabled" field.
+func (m *SupplierProfileMutation) ResetAccountSubmissionEnabled() {
+	m.account_submission_enabled = nil
 }
 
 // SetSettlementConfig sets the "settlement_config" field.
@@ -33730,7 +33886,7 @@ func (m *SupplierProfileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SupplierProfileMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.user != nil {
 		fields = append(fields, supplierprofile.FieldUserID)
 	}
@@ -33748,6 +33904,9 @@ func (m *SupplierProfileMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, supplierprofile.FieldStatus)
+	}
+	if m.account_submission_enabled != nil {
+		fields = append(fields, supplierprofile.FieldAccountSubmissionEnabled)
 	}
 	if m.settlement_config != nil {
 		fields = append(fields, supplierprofile.FieldSettlementConfig)
@@ -33790,6 +33949,8 @@ func (m *SupplierProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.ContactPhone()
 	case supplierprofile.FieldStatus:
 		return m.Status()
+	case supplierprofile.FieldAccountSubmissionEnabled:
+		return m.AccountSubmissionEnabled()
 	case supplierprofile.FieldSettlementConfig:
 		return m.SettlementConfig()
 	case supplierprofile.FieldNotes:
@@ -33825,6 +33986,8 @@ func (m *SupplierProfileMutation) OldField(ctx context.Context, name string) (en
 		return m.OldContactPhone(ctx)
 	case supplierprofile.FieldStatus:
 		return m.OldStatus(ctx)
+	case supplierprofile.FieldAccountSubmissionEnabled:
+		return m.OldAccountSubmissionEnabled(ctx)
 	case supplierprofile.FieldSettlementConfig:
 		return m.OldSettlementConfig(ctx)
 	case supplierprofile.FieldNotes:
@@ -33889,6 +34052,13 @@ func (m *SupplierProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
+		return nil
+	case supplierprofile.FieldAccountSubmissionEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountSubmissionEnabled(v)
 		return nil
 	case supplierprofile.FieldSettlementConfig:
 		v, ok := value.(map[string]interface{})
@@ -34035,6 +34205,9 @@ func (m *SupplierProfileMutation) ResetField(name string) error {
 		return nil
 	case supplierprofile.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case supplierprofile.FieldAccountSubmissionEnabled:
+		m.ResetAccountSubmissionEnabled()
 		return nil
 	case supplierprofile.FieldSettlementConfig:
 		m.ResetSettlementConfig()

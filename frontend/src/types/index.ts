@@ -563,6 +563,7 @@ export interface Group {
   messages_dispatch_model_config?: OpenAIMessagesDispatchModelConfig
   require_oauth_only: boolean
   require_privacy_set: boolean
+  supplier_profile_id?: number | null
   created_at: string
   updated_at: string
 }
@@ -879,6 +880,7 @@ export interface Account {
     contact_name?: string
     contact_email?: string
     status: string
+    account_submission_enabled?: boolean
     user?: {
       id: number
       email: string

@@ -84,6 +84,8 @@ const (
 	FieldMessagesDispatchModelConfig = "messages_dispatch_model_config"
 	// FieldRpmLimit holds the string denoting the rpm_limit field in the database.
 	FieldRpmLimit = "rpm_limit"
+	// FieldSupplierProfileID holds the string denoting the supplier_profile_id field in the database.
+	FieldSupplierProfileID = "supplier_profile_id"
 	// EdgeAPIKeys holds the string denoting the api_keys edge name in mutations.
 	EdgeAPIKeys = "api_keys"
 	// EdgeRedeemCodes holds the string denoting the redeem_codes edge name in mutations.
@@ -96,6 +98,8 @@ const (
 	EdgeAccounts = "accounts"
 	// EdgeAllowedUsers holds the string denoting the allowed_users edge name in mutations.
 	EdgeAllowedUsers = "allowed_users"
+	// EdgeSupplierProfile holds the string denoting the supplier_profile edge name in mutations.
+	EdgeSupplierProfile = "supplier_profile"
 	// EdgeAccountGroups holds the string denoting the account_groups edge name in mutations.
 	EdgeAccountGroups = "account_groups"
 	// EdgeUserAllowedGroups holds the string denoting the user_allowed_groups edge name in mutations.
@@ -140,6 +144,13 @@ const (
 	// AllowedUsersInverseTable is the table name for the User entity.
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	AllowedUsersInverseTable = "users"
+	// SupplierProfileTable is the table that holds the supplier_profile relation/edge.
+	SupplierProfileTable = "groups"
+	// SupplierProfileInverseTable is the table name for the SupplierProfile entity.
+	// It exists in this package in order to avoid circular dependency with the "supplierprofile" package.
+	SupplierProfileInverseTable = "supplier_profiles"
+	// SupplierProfileColumn is the table column denoting the supplier_profile relation/edge.
+	SupplierProfileColumn = "supplier_profile_id"
 	// AccountGroupsTable is the table that holds the account_groups relation/edge.
 	AccountGroupsTable = "account_groups"
 	// AccountGroupsInverseTable is the table name for the AccountGroup entity.
@@ -193,6 +204,7 @@ var Columns = []string{
 	FieldDefaultMappedModel,
 	FieldMessagesDispatchModelConfig,
 	FieldRpmLimit,
+	FieldSupplierProfileID,
 }
 
 var (
@@ -443,6 +455,11 @@ func ByRpmLimit(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRpmLimit, opts...).ToFunc()
 }
 
+// BySupplierProfileID orders the results by the supplier_profile_id field.
+func BySupplierProfileID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupplierProfileID, opts...).ToFunc()
+}
+
 // ByAPIKeysCount orders the results by api_keys count.
 func ByAPIKeysCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -527,6 +544,13 @@ func ByAllowedUsers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// BySupplierProfileField orders the results by supplier_profile field.
+func BySupplierProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSupplierProfileStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByAccountGroupsCount orders the results by account_groups count.
 func ByAccountGroupsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -594,6 +618,13 @@ func newAllowedUsersStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AllowedUsersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2M, true, AllowedUsersTable, AllowedUsersPrimaryKey...),
+	)
+}
+func newSupplierProfileStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SupplierProfileInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, SupplierProfileTable, SupplierProfileColumn),
 	)
 }
 func newAccountGroupsStep() *sqlgraph.Step {

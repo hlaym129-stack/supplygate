@@ -93,6 +93,20 @@ func (_c *SupplierProfileCreate) SetNillableStatus(v *string) *SupplierProfileCr
 	return _c
 }
 
+// SetAccountSubmissionEnabled sets the "account_submission_enabled" field.
+func (_c *SupplierProfileCreate) SetAccountSubmissionEnabled(v bool) *SupplierProfileCreate {
+	_c.mutation.SetAccountSubmissionEnabled(v)
+	return _c
+}
+
+// SetNillableAccountSubmissionEnabled sets the "account_submission_enabled" field if the given value is not nil.
+func (_c *SupplierProfileCreate) SetNillableAccountSubmissionEnabled(v *bool) *SupplierProfileCreate {
+	if v != nil {
+		_c.SetAccountSubmissionEnabled(*v)
+	}
+	return _c
+}
+
 // SetSettlementConfig sets the "settlement_config" field.
 func (_c *SupplierProfileCreate) SetSettlementConfig(v map[string]interface{}) *SupplierProfileCreate {
 	_c.mutation.SetSettlementConfig(v)
@@ -269,6 +283,10 @@ func (_c *SupplierProfileCreate) defaults() {
 		v := supplierprofile.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.AccountSubmissionEnabled(); !ok {
+		v := supplierprofile.DefaultAccountSubmissionEnabled
+		_c.mutation.SetAccountSubmissionEnabled(v)
+	}
 	if _, ok := _c.mutation.SettlementConfig(); !ok {
 		v := supplierprofile.DefaultSettlementConfig()
 		_c.mutation.SetSettlementConfig(v)
@@ -336,6 +354,9 @@ func (_c *SupplierProfileCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "SupplierProfile.status": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.AccountSubmissionEnabled(); !ok {
+		return &ValidationError{Name: "account_submission_enabled", err: errors.New(`ent: missing required field "SupplierProfile.account_submission_enabled"`)}
+	}
 	if _, ok := _c.mutation.SettlementConfig(); !ok {
 		return &ValidationError{Name: "settlement_config", err: errors.New(`ent: missing required field "SupplierProfile.settlement_config"`)}
 	}
@@ -400,6 +421,10 @@ func (_c *SupplierProfileCreate) createSpec() (*SupplierProfile, *sqlgraph.Creat
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(supplierprofile.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.AccountSubmissionEnabled(); ok {
+		_spec.SetField(supplierprofile.FieldAccountSubmissionEnabled, field.TypeBool, value)
+		_node.AccountSubmissionEnabled = value
 	}
 	if value, ok := _c.mutation.SettlementConfig(); ok {
 		_spec.SetField(supplierprofile.FieldSettlementConfig, field.TypeJSON, value)
@@ -599,6 +624,18 @@ func (u *SupplierProfileUpsert) SetStatus(v string) *SupplierProfileUpsert {
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *SupplierProfileUpsert) UpdateStatus() *SupplierProfileUpsert {
 	u.SetExcluded(supplierprofile.FieldStatus)
+	return u
+}
+
+// SetAccountSubmissionEnabled sets the "account_submission_enabled" field.
+func (u *SupplierProfileUpsert) SetAccountSubmissionEnabled(v bool) *SupplierProfileUpsert {
+	u.Set(supplierprofile.FieldAccountSubmissionEnabled, v)
+	return u
+}
+
+// UpdateAccountSubmissionEnabled sets the "account_submission_enabled" field to the value that was provided on create.
+func (u *SupplierProfileUpsert) UpdateAccountSubmissionEnabled() *SupplierProfileUpsert {
+	u.SetExcluded(supplierprofile.FieldAccountSubmissionEnabled)
 	return u
 }
 
@@ -818,6 +855,20 @@ func (u *SupplierProfileUpsertOne) SetStatus(v string) *SupplierProfileUpsertOne
 func (u *SupplierProfileUpsertOne) UpdateStatus() *SupplierProfileUpsertOne {
 	return u.Update(func(s *SupplierProfileUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetAccountSubmissionEnabled sets the "account_submission_enabled" field.
+func (u *SupplierProfileUpsertOne) SetAccountSubmissionEnabled(v bool) *SupplierProfileUpsertOne {
+	return u.Update(func(s *SupplierProfileUpsert) {
+		s.SetAccountSubmissionEnabled(v)
+	})
+}
+
+// UpdateAccountSubmissionEnabled sets the "account_submission_enabled" field to the value that was provided on create.
+func (u *SupplierProfileUpsertOne) UpdateAccountSubmissionEnabled() *SupplierProfileUpsertOne {
+	return u.Update(func(s *SupplierProfileUpsert) {
+		s.UpdateAccountSubmissionEnabled()
 	})
 }
 
@@ -1218,6 +1269,20 @@ func (u *SupplierProfileUpsertBulk) SetStatus(v string) *SupplierProfileUpsertBu
 func (u *SupplierProfileUpsertBulk) UpdateStatus() *SupplierProfileUpsertBulk {
 	return u.Update(func(s *SupplierProfileUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetAccountSubmissionEnabled sets the "account_submission_enabled" field.
+func (u *SupplierProfileUpsertBulk) SetAccountSubmissionEnabled(v bool) *SupplierProfileUpsertBulk {
+	return u.Update(func(s *SupplierProfileUpsert) {
+		s.SetAccountSubmissionEnabled(v)
+	})
+}
+
+// UpdateAccountSubmissionEnabled sets the "account_submission_enabled" field to the value that was provided on create.
+func (u *SupplierProfileUpsertBulk) UpdateAccountSubmissionEnabled() *SupplierProfileUpsertBulk {
+	return u.Update(func(s *SupplierProfileUpsert) {
+		s.UpdateAccountSubmissionEnabled()
 	})
 }
 

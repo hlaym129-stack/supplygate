@@ -1583,24 +1583,28 @@ func init() {
 	supplierprofile.DefaultStatus = supplierprofileDescStatus.Default.(string)
 	// supplierprofile.StatusValidator is a validator for the "status" field. It is called by the builders before save.
 	supplierprofile.StatusValidator = supplierprofileDescStatus.Validators[0].(func(string) error)
+	// supplierprofileDescAccountSubmissionEnabled is the schema descriptor for account_submission_enabled field.
+	supplierprofileDescAccountSubmissionEnabled := supplierprofileFields[6].Descriptor()
+	// supplierprofile.DefaultAccountSubmissionEnabled holds the default value on creation for the account_submission_enabled field.
+	supplierprofile.DefaultAccountSubmissionEnabled = supplierprofileDescAccountSubmissionEnabled.Default.(bool)
 	// supplierprofileDescSettlementConfig is the schema descriptor for settlement_config field.
-	supplierprofileDescSettlementConfig := supplierprofileFields[6].Descriptor()
+	supplierprofileDescSettlementConfig := supplierprofileFields[7].Descriptor()
 	// supplierprofile.DefaultSettlementConfig holds the default value on creation for the settlement_config field.
 	supplierprofile.DefaultSettlementConfig = supplierprofileDescSettlementConfig.Default.(func() map[string]interface{})
 	// supplierprofileDescNotes is the schema descriptor for notes field.
-	supplierprofileDescNotes := supplierprofileFields[7].Descriptor()
+	supplierprofileDescNotes := supplierprofileFields[8].Descriptor()
 	// supplierprofile.DefaultNotes holds the default value on creation for the notes field.
 	supplierprofile.DefaultNotes = supplierprofileDescNotes.Default.(string)
 	// supplierprofileDescReviewNote is the schema descriptor for review_note field.
-	supplierprofileDescReviewNote := supplierprofileFields[8].Descriptor()
+	supplierprofileDescReviewNote := supplierprofileFields[9].Descriptor()
 	// supplierprofile.DefaultReviewNote holds the default value on creation for the review_note field.
 	supplierprofile.DefaultReviewNote = supplierprofileDescReviewNote.Default.(string)
 	// supplierprofileDescCreatedAt is the schema descriptor for created_at field.
-	supplierprofileDescCreatedAt := supplierprofileFields[11].Descriptor()
+	supplierprofileDescCreatedAt := supplierprofileFields[12].Descriptor()
 	// supplierprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
 	supplierprofile.DefaultCreatedAt = supplierprofileDescCreatedAt.Default.(func() time.Time)
 	// supplierprofileDescUpdatedAt is the schema descriptor for updated_at field.
-	supplierprofileDescUpdatedAt := supplierprofileFields[12].Descriptor()
+	supplierprofileDescUpdatedAt := supplierprofileFields[13].Descriptor()
 	// supplierprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	supplierprofile.DefaultUpdatedAt = supplierprofileDescUpdatedAt.Default.(func() time.Time)
 	// supplierprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

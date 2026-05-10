@@ -2513,7 +2513,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-4" :class="isSupplierMode ? 'lg:grid-cols-2' : 'lg:grid-cols-4'">
+      <div class="grid grid-cols-1 gap-4" :class="isSupplierMode ? '' : 'sm:grid-cols-2 lg:grid-cols-4'">
         <div>
           <label class="input-label">{{ t('admin.accounts.concurrency') }}</label>
           <input v-model.number="form.concurrency" type="number" min="1" class="input"
@@ -2537,7 +2537,7 @@
           />
           <p class="input-hint">{{ t('admin.accounts.priorityHint') }}</p>
         </div>
-        <div>
+        <div v-if="!isSupplierMode">
           <label class="input-label">{{ t('admin.accounts.billingRateMultiplier') }}</label>
           <input v-model.number="form.rate_multiplier" type="number" min="0" step="0.001" class="input" />
           <p class="input-hint">{{ t('admin.accounts.billingRateMultiplierHint') }}</p>
@@ -4124,7 +4124,8 @@ const stripSupplierRestrictedAccountFields = (payload: CreateAccountRequest): Cr
     proxy_id: null,
     group_ids: [],
     load_factor: undefined,
-    priority: 50
+    priority: 50,
+    rate_multiplier: undefined
   }
 }
 

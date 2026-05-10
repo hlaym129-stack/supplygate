@@ -129,7 +129,7 @@ function simulateGuard(
     return roleDashboard(authState)
   }
 
-  if (authState.isAdmin && toPath.startsWith('/supplier')) {
+  if (authState.isAdmin && (toPath === '/supplier' || toPath.startsWith('/supplier/'))) {
     return '/admin/dashboard'
   }
 
@@ -696,6 +696,19 @@ describe('路由守卫逻辑', () => {
       }
       const redirect = simulateGuard('/supplier/dashboard', { requiresSupplierProfile: true }, authState)
       expect(redirect).toBe('/admin/dashboard')
+    })
+
+    it('管理员访问供应市场允许通过', () => {
+      const authState: MockAuthState = {
+        isAuthenticated: true,
+        isAdmin: true,
+        isSupplier: true,
+        isSimpleMode: false,
+        backendModeEnabled: false,
+        hasPendingAuthSession: false,
+      }
+      const redirect = simulateGuard('/supplier-marketplace', { requiresAdmin: false }, authState)
+      expect(redirect).toBeNull()
     })
   })
 })

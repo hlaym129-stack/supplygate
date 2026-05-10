@@ -699,12 +699,21 @@ var (
 		{Name: "default_mapped_model", Type: field.TypeString, Size: 100, Default: ""},
 		{Name: "messages_dispatch_model_config", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "rpm_limit", Type: field.TypeInt, Default: 0},
+		{Name: "supplier_profile_id", Type: field.TypeInt64, Nullable: true},
 	}
 	// GroupsTable holds the schema information for the "groups" table.
 	GroupsTable = &schema.Table{
 		Name:       "groups",
 		Columns:    GroupsColumns,
 		PrimaryKey: []*schema.Column{GroupsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "groups_supplier_profiles_supplier_profile",
+				Columns:    []*schema.Column{GroupsColumns[35]},
+				RefColumns: []*schema.Column{SupplierProfilesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "group_status",
@@ -725,6 +734,11 @@ var (
 				Name:    "group_is_exclusive",
 				Unique:  false,
 				Columns: []*schema.Column{GroupsColumns[7]},
+			},
+			{
+				Name:    "group_supplier_profile_id",
+				Unique:  false,
+				Columns: []*schema.Column{GroupsColumns[35]},
 			},
 			{
 				Name:    "group_deleted_at",
@@ -1272,6 +1286,7 @@ var (
 		{Name: "contact_email", Type: field.TypeString, Size: 255, Default: ""},
 		{Name: "contact_phone", Type: field.TypeString, Size: 50, Default: ""},
 		{Name: "status", Type: field.TypeString, Size: 20, Default: "pending"},
+		{Name: "account_submission_enabled", Type: field.TypeBool, Default: false},
 		{Name: "settlement_config", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "notes", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
 		{Name: "review_note", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
@@ -1289,7 +1304,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "supplier_profiles_users_supplier_profile",
-				Columns:    []*schema.Column{SupplierProfilesColumns[13]},
+				Columns:    []*schema.Column{SupplierProfilesColumns[14]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1303,7 +1318,7 @@ var (
 			{
 				Name:    "supplierprofile_user_id",
 				Unique:  true,
-				Columns: []*schema.Column{SupplierProfilesColumns[13]},
+				Columns: []*schema.Column{SupplierProfilesColumns[14]},
 			},
 		},
 	}
@@ -1871,6 +1886,7 @@ func init() {
 	ErrorPassthroughRulesTable.Annotation = &entsql.Annotation{
 		Table: "error_passthrough_rules",
 	}
+	GroupsTable.ForeignKeys[0].RefTable = SupplierProfilesTable
 	GroupsTable.Annotation = &entsql.Annotation{
 		Table: "groups",
 	}

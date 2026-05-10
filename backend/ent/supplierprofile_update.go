@@ -115,6 +115,20 @@ func (_u *SupplierProfileUpdate) SetNillableStatus(v *string) *SupplierProfileUp
 	return _u
 }
 
+// SetAccountSubmissionEnabled sets the "account_submission_enabled" field.
+func (_u *SupplierProfileUpdate) SetAccountSubmissionEnabled(v bool) *SupplierProfileUpdate {
+	_u.mutation.SetAccountSubmissionEnabled(v)
+	return _u
+}
+
+// SetNillableAccountSubmissionEnabled sets the "account_submission_enabled" field if the given value is not nil.
+func (_u *SupplierProfileUpdate) SetNillableAccountSubmissionEnabled(v *bool) *SupplierProfileUpdate {
+	if v != nil {
+		_u.SetAccountSubmissionEnabled(*v)
+	}
+	return _u
+}
+
 // SetSettlementConfig sets the "settlement_config" field.
 func (_u *SupplierProfileUpdate) SetSettlementConfig(v map[string]interface{}) *SupplierProfileUpdate {
 	_u.mutation.SetSettlementConfig(v)
@@ -386,6 +400,9 @@ func (_u *SupplierProfileUpdate) sqlSave(ctx context.Context) (_node int, err er
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(supplierprofile.FieldStatus, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.AccountSubmissionEnabled(); ok {
+		_spec.SetField(supplierprofile.FieldAccountSubmissionEnabled, field.TypeBool, value)
+	}
 	if value, ok := _u.mutation.SettlementConfig(); ok {
 		_spec.SetField(supplierprofile.FieldSettlementConfig, field.TypeJSON, value)
 	}
@@ -632,6 +649,20 @@ func (_u *SupplierProfileUpdateOne) SetStatus(v string) *SupplierProfileUpdateOn
 func (_u *SupplierProfileUpdateOne) SetNillableStatus(v *string) *SupplierProfileUpdateOne {
 	if v != nil {
 		_u.SetStatus(*v)
+	}
+	return _u
+}
+
+// SetAccountSubmissionEnabled sets the "account_submission_enabled" field.
+func (_u *SupplierProfileUpdateOne) SetAccountSubmissionEnabled(v bool) *SupplierProfileUpdateOne {
+	_u.mutation.SetAccountSubmissionEnabled(v)
+	return _u
+}
+
+// SetNillableAccountSubmissionEnabled sets the "account_submission_enabled" field if the given value is not nil.
+func (_u *SupplierProfileUpdateOne) SetNillableAccountSubmissionEnabled(v *bool) *SupplierProfileUpdateOne {
+	if v != nil {
+		_u.SetAccountSubmissionEnabled(*v)
 	}
 	return _u
 }
@@ -936,6 +967,9 @@ func (_u *SupplierProfileUpdateOne) sqlSave(ctx context.Context) (_node *Supplie
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(supplierprofile.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AccountSubmissionEnabled(); ok {
+		_spec.SetField(supplierprofile.FieldAccountSubmissionEnabled, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.SettlementConfig(); ok {
 		_spec.SetField(supplierprofile.FieldSettlementConfig, field.TypeJSON, value)

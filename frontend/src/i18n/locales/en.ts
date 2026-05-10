@@ -352,6 +352,7 @@ export default {
     groups: 'Groups',
     channels: 'Channels',
     availableChannels: 'Available Channels',
+    supplierMarketplace: 'Supplier Marketplace',
     subscriptions: 'Subscriptions',
     accounts: 'Accounts',
     proxies: 'Proxies',
@@ -1026,6 +1027,24 @@ export default {
       unitPerMillion: '/ 1M tokens',
       unitPerRequest: '/ request'
     }
+  },
+
+  supplierMarketplace: {
+    title: 'Supplier Marketplace',
+    detailTitle: 'Supplier Offers',
+    description: 'Browse supplier model offers. Subscribe to a group, then select it from API keys.',
+    searchPlaceholder: 'Search suppliers, models, platforms, or groups...',
+    empty: 'No supplier offers available',
+    noDescription: 'No description',
+    noModels: 'No models',
+    notFound: 'Supplier not found',
+    subscribed: 'Subscribed',
+    subscribe: 'Subscribe Group',
+    unsubscribe: 'Unsubscribe Group',
+    subscribeSuccess: 'Subscribed',
+    unsubscribeSuccess: 'Unsubscribed',
+    viewOffers: 'View offers',
+    modelCount: '{count} models',
   },
 
   affiliate: {

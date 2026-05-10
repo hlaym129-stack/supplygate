@@ -20,6 +20,7 @@ export interface SupplierProfile {
   contact_email?: string
   contact_phone?: string
   status: SupplierStatus
+  account_submission_enabled?: boolean
   settlement_config?: Record<string, unknown>
   notes?: string
   review_note?: string
@@ -50,7 +51,6 @@ export interface SupplierAccountInput {
   concurrency?: number
   load_factor?: number | null
   priority?: number
-  rate_multiplier?: number
   group_ids?: number[]
   expires_at?: string | null
   auto_pause_on_expired?: boolean

@@ -352,6 +352,7 @@ export default {
     groups: '分组管理',
     channels: '渠道管理',
     availableChannels: '可用渠道',
+    supplierMarketplace: '供应市场',
     subscriptions: '订阅管理',
     accounts: '账号管理',
     proxies: 'IP管理',
@@ -1030,6 +1031,24 @@ export default {
       unitPerMillion: '/ 1M token',
       unitPerRequest: '/ 次'
     }
+  },
+
+  supplierMarketplace: {
+    title: '供应市场',
+    detailTitle: '供应商报价',
+    description: '浏览供应商提供的模型报价，订阅分组后可在 API 密钥中选择调用',
+    searchPlaceholder: '搜索供应商、模型、平台或分组...',
+    empty: '暂无可订阅供应商',
+    noDescription: '暂无简介',
+    noModels: '暂无模型',
+    notFound: '未找到该供应商',
+    subscribed: '已订阅',
+    subscribe: '订阅分组',
+    unsubscribe: '退订分组',
+    subscribeSuccess: '订阅成功',
+    unsubscribeSuccess: '已退订',
+    viewOffers: '查看报价',
+    modelCount: '{count} 个模型',
   },
 
   affiliate: {

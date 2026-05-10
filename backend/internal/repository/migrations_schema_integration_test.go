@@ -87,6 +87,10 @@ func TestMigrationsRunner_IsIdempotent_AndSchemaIsUpToDate(t *testing.T) {
 
 	// user_allowed_groups: created_at should be timestamptz
 	requireColumn(t, tx, "user_allowed_groups", "created_at", "timestamp with time zone", 0, false)
+
+	// supplier_profiles: account submission permission is independent from profile text review status
+	requireColumn(t, tx, "supplier_profiles", "account_submission_enabled", "boolean", 0, false)
+	requireIndex(t, tx, "supplier_profiles", "supplier_profiles_account_submission_enabled_idx")
 }
 
 func TestMigrationsRunner_AuthIdentityAndPaymentSchemaStayAligned(t *testing.T) {

@@ -5,6 +5,8 @@ import {
   normalizeSupplierPricingRevisions,
   type SupplierAccountPricingRevision,
   type SupplierProfile,
+  type SupplierSettlementStatement,
+  type SupplierSettlementStatus,
   type SupplierStatus
 } from '../supplier'
 
@@ -13,6 +15,31 @@ export interface SupplierAccountApprovalInput {
   priority?: number
   rate_multiplier?: number
   schedulable?: boolean
+}
+
+export interface SupplierSettlementListParams {
+  page?: number
+  page_size?: number
+  supplier_id?: number | null
+  status?: SupplierSettlementStatus | ''
+  period_month?: string
+}
+
+export interface SupplierSettlementGenerateInput {
+  supplier_id: number
+  period_month: string
+}
+
+export interface SupplierSettlementConfirmInput {
+  adjustment_amount?: number
+  adjustment_reason?: string
+}
+
+export interface SupplierSettlementPaymentInput {
+  paid_amount: number
+  paid_at?: string
+  payment_reference?: string
+  payment_note?: string
 }
 
 export const suppliersAPI = {
@@ -81,6 +108,39 @@ export const suppliersAPI = {
       review_note: reviewNote
     })
     return normalizeSupplierPricingRevision(data)
+  },
+
+  async listSettlementStatements(params: SupplierSettlementListParams = {}): Promise<PaginatedResponse<SupplierSettlementStatement>> {
+    const { data } = await apiClient.get<PaginatedResponse<SupplierSettlementStatement>>('/admin/supplier-settlement-statements', {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? 20,
+        supplier_id: params.supplier_id || undefined,
+        status: params.status || undefined,
+        period_month: params.period_month || undefined
+      }
+    })
+    return data
+  },
+
+  async generateSettlementStatement(input: SupplierSettlementGenerateInput): Promise<SupplierSettlementStatement> {
+    const { data } = await apiClient.post<SupplierSettlementStatement>('/admin/supplier-settlement-statements/generate', input)
+    return data
+  },
+
+  async confirmSettlementStatement(id: number, input: SupplierSettlementConfirmInput): Promise<SupplierSettlementStatement> {
+    const { data } = await apiClient.post<SupplierSettlementStatement>(`/admin/supplier-settlement-statements/${id}/confirm`, input)
+    return data
+  },
+
+  async markSettlementStatementPaid(id: number, input: SupplierSettlementPaymentInput): Promise<SupplierSettlementStatement> {
+    const { data } = await apiClient.post<SupplierSettlementStatement>(`/admin/supplier-settlement-statements/${id}/mark-paid`, input)
+    return data
+  },
+
+  async voidSettlementStatement(id: number): Promise<SupplierSettlementStatement> {
+    const { data } = await apiClient.post<SupplierSettlementStatement>(`/admin/supplier-settlement-statements/${id}/void`)
+    return data
   }
 }
 

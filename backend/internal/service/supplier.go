@@ -34,6 +34,9 @@ var (
 	ErrSupplierDefaultGroupMissing = infraerrors.BadRequest("SUPPLIER_DEFAULT_GROUP_MISSING", "未找到对应平台的活跃分组")
 	ErrSupplierPricingNotFound     = infraerrors.NotFound("SUPPLIER_PRICING_NOT_FOUND", "supplier pricing revision not found")
 	ErrSupplierPricingInvalid      = infraerrors.BadRequest("SUPPLIER_PRICING_INVALID", "invalid supplier pricing")
+	ErrSupplierSettlementNotFound  = infraerrors.NotFound("SUPPLIER_SETTLEMENT_NOT_FOUND", "supplier settlement statement not found")
+	ErrSupplierSettlementInvalid   = infraerrors.BadRequest("SUPPLIER_SETTLEMENT_INVALID", "invalid supplier settlement statement")
+	ErrSupplierSettlementLocked    = infraerrors.Conflict("SUPPLIER_SETTLEMENT_LOCKED", "supplier settlement statement cannot be modified")
 )
 
 var supplierMarketplacePlatforms = []string{
@@ -206,6 +209,76 @@ type SupplierAccountPricingRevision struct {
 	UpdatedAt    time.Time             `json:"updated_at"`
 }
 
+const (
+	SupplierSettlementStatusDraft     = "draft"
+	SupplierSettlementStatusConfirmed = "confirmed"
+	SupplierSettlementStatusPaid      = "paid"
+	SupplierSettlementStatusVoided    = "voided"
+)
+
+type SupplierSettlementStatement struct {
+	ID               int64                      `json:"id"`
+	SupplierID       int64                      `json:"supplier_id"`
+	PeriodStart      time.Time                  `json:"period_start"`
+	PeriodEnd        time.Time                  `json:"period_end"`
+	Status           string                     `json:"status"`
+	UsageAmount      float64                    `json:"usage_amount"`
+	AdjustmentAmount float64                    `json:"adjustment_amount"`
+	AdjustmentReason string                     `json:"adjustment_reason"`
+	PayableAmount    float64                    `json:"payable_amount"`
+	RequestCount     int64                      `json:"request_count"`
+	InputTokens      int64                      `json:"input_tokens"`
+	OutputTokens     int64                      `json:"output_tokens"`
+	TotalTokens      int64                      `json:"total_tokens"`
+	CreatedBy        int64                      `json:"created_by"`
+	ConfirmedBy      *int64                     `json:"confirmed_by"`
+	ConfirmedAt      *time.Time                 `json:"confirmed_at"`
+	PaidBy           *int64                     `json:"paid_by"`
+	PaidAt           *time.Time                 `json:"paid_at"`
+	VoidedBy         *int64                     `json:"voided_by"`
+	VoidedAt         *time.Time                 `json:"voided_at"`
+	CreatedAt        time.Time                  `json:"created_at"`
+	UpdatedAt        time.Time                  `json:"updated_at"`
+	Supplier         *SupplierProfile           `json:"supplier,omitempty"`
+	Payment          *SupplierSettlementPayment `json:"payment,omitempty"`
+}
+
+type SupplierSettlementPayment struct {
+	ID               int64     `json:"id"`
+	StatementID      int64     `json:"statement_id"`
+	SupplierID       int64     `json:"supplier_id"`
+	PaidAmount       float64   `json:"paid_amount"`
+	PaidAt           time.Time `json:"paid_at"`
+	PaymentReference string    `json:"payment_reference"`
+	PaymentNote      string    `json:"payment_note"`
+	CreatedBy        int64     `json:"created_by"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
+type SupplierSettlementListFilters struct {
+	SupplierID        int64
+	Status            string
+	PeriodStart       *time.Time
+	VisibleToSupplier bool
+}
+
+type SupplierSettlementGenerateInput struct {
+	SupplierID  int64  `json:"supplier_id"`
+	PeriodMonth string `json:"period_month"`
+}
+
+type SupplierSettlementConfirmInput struct {
+	AdjustmentAmount float64 `json:"adjustment_amount"`
+	AdjustmentReason string  `json:"adjustment_reason"`
+}
+
+type SupplierSettlementPaymentInput struct {
+	PaidAmount       float64    `json:"paid_amount"`
+	PaidAt           *time.Time `json:"paid_at"`
+	PaymentReference string     `json:"payment_reference"`
+	PaymentNote      string     `json:"payment_note"`
+}
+
 type SupplierRepository interface {
 	UpsertProfile(ctx context.Context, profile *SupplierProfile) error
 	GetProfileByUserID(ctx context.Context, userID int64) (*SupplierProfile, error)
@@ -226,6 +299,13 @@ type SupplierRepository interface {
 	GetLatestPricingRevisionBySupplierAndKind(ctx context.Context, supplierID int64, kind string, since time.Time) (*SupplierAccountPricingRevision, error)
 	CountPricingRevisionsBySupplierAndKindSince(ctx context.Context, supplierID int64, kind string, since time.Time) (int, error)
 	ReviewPricingRevision(ctx context.Context, revisionID int64, status string, reviewerID int64, reviewNote string, effectiveAt *time.Time) (*SupplierAccountPricingRevision, error)
+	GetSettlementStatementByID(ctx context.Context, id int64) (*SupplierSettlementStatement, error)
+	GetOpenSettlementStatementByPeriod(ctx context.Context, supplierID int64, periodStart time.Time) (*SupplierSettlementStatement, error)
+	UpsertDraftSettlementStatement(ctx context.Context, statement *SupplierSettlementStatement) (*SupplierSettlementStatement, error)
+	ListSettlementStatements(ctx context.Context, params pagination.PaginationParams, filters SupplierSettlementListFilters) ([]SupplierSettlementStatement, *pagination.PaginationResult, error)
+	ConfirmSettlementStatement(ctx context.Context, id int64, reviewerID int64, adjustmentAmount float64, adjustmentReason string) (*SupplierSettlementStatement, error)
+	MarkSettlementStatementPaid(ctx context.Context, id int64, paidBy int64, payment SupplierSettlementPaymentInput) (*SupplierSettlementStatement, error)
+	VoidSettlementStatement(ctx context.Context, id int64, voidedBy int64) (*SupplierSettlementStatement, error)
 }
 
 type SupplierAccountRepository interface {

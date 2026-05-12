@@ -250,6 +250,115 @@ func (h *SupplierHandler) RejectPricingRevision(c *gin.Context) {
 	response.Success(c, dto.SupplierAccountPricingRevisionFromService(revision))
 }
 
+func (h *SupplierHandler) ListSettlementStatements(c *gin.Context) {
+	supplierID, _ := strconv.ParseInt(c.Query("supplier_id"), 10, 64)
+	periodStart, err := service.ParseSupplierSettlementPeriodMonth(c.Query("period_month"))
+	if response.ErrorFrom(c, err) {
+		return
+	}
+	items, page, err := h.supplierService.ListSettlementStatements(c.Request.Context(), parseAdminPagination(c), service.SupplierSettlementListFilters{
+		SupplierID:  supplierID,
+		Status:      c.Query("status"),
+		PeriodStart: periodStart,
+	})
+	if response.ErrorFrom(c, err) {
+		return
+	}
+	response.Success(c, paginatedSupplierSettlementStatements(items, page))
+}
+
+func (h *SupplierHandler) GenerateSettlementStatement(c *gin.Context) {
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "Unauthorized")
+		return
+	}
+	var req service.SupplierSettlementGenerateInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	statement, err := h.supplierService.GenerateSettlementStatement(c.Request.Context(), req, subject.UserID)
+	if response.ErrorFrom(c, err) {
+		return
+	}
+	response.Success(c, statement)
+}
+
+func (h *SupplierHandler) ConfirmSettlementStatement(c *gin.Context) {
+	statementID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || statementID <= 0 {
+		response.BadRequest(c, "invalid statement id")
+		return
+	}
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "Unauthorized")
+		return
+	}
+	var req service.SupplierSettlementConfirmInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	statement, err := h.supplierService.ConfirmSettlementStatement(c.Request.Context(), statementID, subject.UserID, req)
+	if response.ErrorFrom(c, err) {
+		return
+	}
+	response.Success(c, statement)
+}
+
+func (h *SupplierHandler) MarkSettlementStatementPaid(c *gin.Context) {
+	statementID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || statementID <= 0 {
+		response.BadRequest(c, "invalid statement id")
+		return
+	}
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "Unauthorized")
+		return
+	}
+	var req service.SupplierSettlementPaymentInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	statement, err := h.supplierService.MarkSettlementStatementPaid(c.Request.Context(), statementID, subject.UserID, req)
+	if response.ErrorFrom(c, err) {
+		return
+	}
+	response.Success(c, statement)
+}
+
+func (h *SupplierHandler) VoidSettlementStatement(c *gin.Context) {
+	statementID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || statementID <= 0 {
+		response.BadRequest(c, "invalid statement id")
+		return
+	}
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "Unauthorized")
+		return
+	}
+	statement, err := h.supplierService.VoidSettlementStatement(c.Request.Context(), statementID, subject.UserID)
+	if response.ErrorFrom(c, err) {
+		return
+	}
+	response.Success(c, statement)
+}
+
+func paginatedSupplierSettlementStatements(items []service.SupplierSettlementStatement, page *pagination.PaginationResult) response.PaginatedData {
+	return response.PaginatedData{
+		Items:    items,
+		Total:    page.Total,
+		Page:     page.Page,
+		PageSize: page.PageSize,
+		Pages:    page.Pages,
+	}
+}
+
 func supplierProfileAdminResponse(profile *service.SupplierProfile) gin.H {
 	if profile == nil {
 		return gin.H{}

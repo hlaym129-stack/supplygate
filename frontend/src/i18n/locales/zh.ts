@@ -630,10 +630,13 @@ export default {
       standard: '标准金额',
       manageAccounts: '管理上游账号',
       manageAccountsHint: '提交、测试和维护供应商账号',
+      viewUsage: '查看用量归属',
       viewUsageHint: '查看供应商账号产生的用量',
+      recentUsage: '最近归属用量',
+      noUsageRecords: '暂无归属用量',
       profile: '主体资料',
       profileHint: '维护供应商主体与联系方式',
-      noUsageHint: '供应商账号产生用量后，使用历史将显示在这里。'
+      noUsageHint: '供应商账号产生用量后，归属用量将显示在这里。'
     }
   },
 

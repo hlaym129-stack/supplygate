@@ -21,7 +21,7 @@ export { totpAPI } from './totp'
 export { default as announcementsAPI } from './announcements'
 export { channelMonitorUserAPI } from './channelMonitor'
 export { supplierAPI } from './supplier'
-export type { SupplierProfile, SupplierProfileInput, SupplierAccountInput, SupplierUsageSummary, SupplierStatus } from './supplier'
+export type { SupplierProfile, SupplierProfileInput, SupplierAccountInput, SupplierUsageSummary, SupplierStatus, SupplierSettlementStatement, SupplierSettlementStatus } from './supplier'
 
 // Admin APIs
 export { adminAPI } from './admin'

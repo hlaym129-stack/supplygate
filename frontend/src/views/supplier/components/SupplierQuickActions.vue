@@ -20,7 +20,7 @@
           <Icon name="chart" size="lg" class="text-emerald-600 dark:text-emerald-400" />
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-medium text-gray-900 dark:text-white">{{ t('dashboard.viewUsage') }}</p>
+          <p class="text-sm font-medium text-gray-900 dark:text-white">{{ t('supplier.dashboard.viewUsage') }}</p>
           <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('supplier.dashboard.viewUsageHint') }}</p>
         </div>
         <Icon name="chevronRight" size="md" class="text-gray-400 transition-colors group-hover:text-emerald-500 dark:text-dark-500" />

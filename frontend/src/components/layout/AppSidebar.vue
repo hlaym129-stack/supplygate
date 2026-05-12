@@ -720,6 +720,7 @@ const supplierNavItems = computed((): NavItem[] => {
     return [
       { path: '/supplier/dashboard', label: '供应商看板', icon: DashboardIcon },
       { path: '/supplier/usage', label: '用量归属', icon: ChartIcon },
+      { path: '/supplier/settlements', label: '月度结算', icon: CreditCardIcon },
       profileItem,
     ]
   }
@@ -728,6 +729,7 @@ const supplierNavItems = computed((): NavItem[] => {
     { path: '/supplier/accounts', label: '上游账号', icon: GlobeIcon },
     { path: '/supplier-marketplace', label: t('nav.supplierMarketplace'), icon: ChannelIcon, hideInSimpleMode: true },
     { path: '/supplier/usage', label: '用量归属', icon: ChartIcon },
+    { path: '/supplier/settlements', label: '月度结算', icon: CreditCardIcon },
     profileItem,
   ]
 })
@@ -772,6 +774,7 @@ const adminNavItems = computed((): NavItem[] => {
     { path: '/admin/subscriptions', label: t('nav.subscriptions'), icon: CreditCardIcon, hideInSimpleMode: true },
     { path: '/admin/accounts', label: t('nav.accounts'), icon: GlobeIcon },
     { path: '/admin/suppliers', label: '供应商管理', icon: UsersIcon, hideInSimpleMode: true },
+    { path: '/admin/supplier-settlements', label: '供应商结算', icon: CreditCardIcon, hideInSimpleMode: true },
     { path: '/admin/announcements', label: t('nav.announcements'), icon: BellIcon },
     { path: '/admin/proxies', label: t('nav.proxies'), icon: ServerIcon },
     { path: '/admin/risk-control', label: t('nav.riskControl'), icon: ShieldIcon, hideInSimpleMode: true, featureFlag: flagRiskControl },

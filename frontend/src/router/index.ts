@@ -453,6 +453,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/supplier/settlements',
+    name: 'SupplierSettlements',
+    component: () => import('@/views/supplier/SettlementsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresSupplierProfile: true,
+      title: 'Supplier Settlements'
+    }
+  },
+  {
     path: '/supplier/profile',
     name: 'SupplierProfile',
     component: () => import('@/views/supplier/ProfileView.vue'),
@@ -587,6 +597,16 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       requiresAdmin: true,
       title: 'Supplier Management'
+    }
+  },
+  {
+    path: '/admin/supplier-settlements',
+    name: 'AdminSupplierSettlements',
+    component: () => import('@/views/admin/SupplierSettlementsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Supplier Settlements'
     }
   },
   {

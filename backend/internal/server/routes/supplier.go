@@ -22,6 +22,7 @@ func RegisterSupplierRoutes(
 	authenticated.GET("/supplier/dashboard/trend", h.Supplier.DashboardTrend)
 	authenticated.GET("/supplier/dashboard/models", h.Supplier.DashboardModels)
 	authenticated.GET("/supplier/dashboard/recent", h.Supplier.DashboardRecent)
+	authenticated.GET("/supplier/settlement-statements", h.Supplier.ListSettlementStatements)
 
 	supplier := authenticated.Group("/supplier")
 	supplier.Use(middleware.SupplierOnly(h.SupplierService))

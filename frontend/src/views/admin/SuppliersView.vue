@@ -14,6 +14,19 @@
         </select>
       </div>
 
+      <router-link
+        to="/admin/supplier-settlements"
+        class="grid gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-4 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-900/10 md:grid-cols-[1fr_auto_auto_auto]"
+      >
+        <div>
+          <div class="text-sm font-semibold text-emerald-900 dark:text-emerald-100">供应商结算</div>
+          <div class="mt-1 text-xs text-emerald-700/80 dark:text-emerald-200/80">生成月度结算单，确认应付金额并记录付款状态。</div>
+        </div>
+        <div class="text-sm text-emerald-900 dark:text-emerald-100">待确认 <span class="font-semibold">${{ formatSettlementAmount(settlementSummary.draft) }}</span></div>
+        <div class="text-sm text-emerald-900 dark:text-emerald-100">待付款 <span class="font-semibold">${{ formatSettlementAmount(settlementSummary.confirmed) }}</span></div>
+        <div class="text-sm text-emerald-900 dark:text-emerald-100">已付款 <span class="font-semibold">${{ formatSettlementAmount(settlementSummary.paid) }}</span></div>
+      </router-link>
+
       <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-dark-700 dark:bg-dark-800">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
           <thead class="bg-gray-50 dark:bg-dark-700/50">
@@ -287,13 +300,14 @@ import { adminAPI } from '@/api'
 import { useAppStore } from '@/stores'
 import type { Account } from '@/types'
 import type { SupplierProfile, SupplierStatus } from '@/api'
-import type { SupplierAccountPricingRevision } from '@/api/supplier'
+import type { SupplierAccountPricingRevision, SupplierSettlementStatement } from '@/api/supplier'
 
 const appStore = useAppStore()
 const profiles = ref<SupplierProfile[]>([])
 const status = ref<SupplierStatus | ''>('pending')
 const accountStatus = ref<'' | 'pending' | 'approved' | 'rejected' | 'returned'>('pending')
 const accounts = ref<Account[]>([])
+const settlementStatements = ref<SupplierSettlementStatement[]>([])
 const accountDrafts = reactive<Record<number, { priority?: number; rate_multiplier?: number }>>({})
 const revisionsByAccount = reactive<Record<number, SupplierAccountPricingRevision[]>>({})
 const selectedAccount = ref<Account | null>(null)
@@ -376,6 +390,17 @@ const canApproveSelectedAccount = computed(() => {
   const supplier = selectedAccount.value?.supplier
   return !supplier || supplier.account_submission_enabled === true || supplier.status === 'approved'
 })
+const settlementSummary = computed(() => {
+  return settlementStatements.value.reduce(
+    (acc, item) => {
+      if (item.status === 'draft') acc.draft += item.payable_amount
+      if (item.status === 'confirmed') acc.confirmed += item.payable_amount
+      if (item.status === 'paid') acc.paid += item.payment?.paid_amount ?? item.payable_amount
+      return acc
+    },
+    { draft: 0, confirmed: 0, paid: 0 }
+  )
+})
 
 function statusLabel(value: string): string {
   return ({ pending: '待审核', approved: '已通过', rejected: '已驳回', returned: '已退回修改' } as Record<string, string>)[value] || value
@@ -399,6 +424,10 @@ function modelSummary(account: Account) {
   return `${count} 个模型`
 }
 
+function formatSettlementAmount(value: number) {
+  return Number(value || 0).toFixed(4)
+}
+
 async function loadProfiles() {
   const data = await adminAPI.suppliers.listProfiles(1, 100, status.value)
   profiles.value = data.items
@@ -419,6 +448,15 @@ async function loadAccounts() {
     }))
   } catch (err: any) {
     appStore.showError(apiErrorMessage(err, '供应商账号加载失败'))
+  }
+}
+
+async function loadSettlementSummary() {
+  try {
+    const data = await adminAPI.suppliers.listSettlementStatements({ page: 1, page_size: 100 })
+    settlementStatements.value = data.items || []
+  } catch {
+    settlementStatements.value = []
   }
 }
 
@@ -663,5 +701,6 @@ function apiErrorMessage(err: any, fallback: string) {
 onMounted(() => {
   loadProfiles()
   loadAccounts()
+  loadSettlementSummary()
 })
 </script>

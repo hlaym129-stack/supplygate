@@ -121,6 +121,47 @@ export interface SupplierAccountPricingRevision {
   updated_at: string
 }
 
+export type SupplierSettlementStatus = 'draft' | 'confirmed' | 'paid' | 'voided'
+
+export interface SupplierSettlementPayment {
+  id: number
+  statement_id: number
+  supplier_id: number
+  paid_amount: number
+  paid_at: string
+  payment_reference?: string
+  payment_note?: string
+  created_by: number
+  created_at: string
+}
+
+export interface SupplierSettlementStatement {
+  id: number
+  supplier_id: number
+  period_start: string
+  period_end: string
+  status: SupplierSettlementStatus
+  usage_amount: number
+  adjustment_amount: number
+  adjustment_reason?: string
+  payable_amount: number
+  request_count: number
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+  created_by: number
+  confirmed_by?: number | null
+  confirmed_at?: string | null
+  paid_by?: number | null
+  paid_at?: string | null
+  voided_by?: number | null
+  voided_at?: string | null
+  created_at: string
+  updated_at: string
+  supplier?: SupplierProfile | null
+  payment?: SupplierSettlementPayment | null
+}
+
 function normalizePricingNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   return null
@@ -268,6 +309,13 @@ export const supplierAPI = {
         page_size: 5,
         ...params
       }
+    })
+    return data
+  },
+
+  async listSettlementStatements(page = 1, pageSize = 20): Promise<PaginatedResponse<SupplierSettlementStatement>> {
+    const { data } = await apiClient.get<PaginatedResponse<SupplierSettlementStatement>>('/supplier/settlement-statements', {
+      params: { page, page_size: pageSize }
     })
     return data
   }

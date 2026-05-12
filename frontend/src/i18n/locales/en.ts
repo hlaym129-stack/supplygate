@@ -631,10 +631,13 @@ export default {
       standard: 'Standard Amount',
       manageAccounts: 'Manage Upstream Accounts',
       manageAccountsHint: 'Submit, test, and maintain supplier accounts',
+      viewUsage: 'View Attributed Usage',
       viewUsageHint: 'View usage attributed to supplier accounts',
+      recentUsage: 'Recent Attributed Usage',
+      noUsageRecords: 'No attributed usage yet',
       profile: 'Supplier Profile',
       profileHint: 'Maintain company and contact details',
-      noUsageHint: 'Usage history appears here after supplier accounts handle traffic.'
+      noUsageHint: 'Attributed usage appears here after supplier accounts handle traffic.'
     }
   },
 

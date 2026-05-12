@@ -440,6 +440,26 @@ func (h *SupplierHandler) DashboardRecent(c *gin.Context) {
 	})
 }
 
+func (h *SupplierHandler) ListSettlementStatements(c *gin.Context) {
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "Unauthorized")
+		return
+	}
+	params := parsePaginationParams(c)
+	statements, page, err := h.supplierService.ListMySettlementStatements(c.Request.Context(), subject.UserID, params)
+	if response.ErrorFrom(c, err) {
+		return
+	}
+	response.Success(c, response.PaginatedData{
+		Items:    statements,
+		Total:    page.Total,
+		Page:     page.Page,
+		PageSize: page.PageSize,
+		Pages:    page.Pages,
+	})
+}
+
 func parsePaginationParams(c *gin.Context) pagination.PaginationParams {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))

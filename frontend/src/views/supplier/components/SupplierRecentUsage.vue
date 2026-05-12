@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('dashboard.recentUsage') }}</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('supplier.dashboard.recentUsage') }}</h2>
       <span class="badge badge-gray">{{ t('dashboard.last7Days') }}</span>
     </div>
     <div class="p-6">
@@ -9,7 +9,7 @@
         <LoadingSpinner size="lg" />
       </div>
       <div v-else-if="data.length === 0" class="py-8">
-        <EmptyState :title="t('dashboard.noUsageRecords')" :description="t('supplier.dashboard.noUsageHint')" />
+        <EmptyState :title="t('supplier.dashboard.noUsageRecords')" :description="t('supplier.dashboard.noUsageHint')" />
       </div>
       <div v-else class="space-y-3">
         <div v-for="log in data" :key="log.id" class="flex items-center justify-between rounded-xl bg-gray-50 p-4 transition-colors hover:bg-gray-100 dark:bg-dark-800/50 dark:hover:bg-dark-800">

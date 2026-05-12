@@ -125,6 +125,15 @@ func registerSupplierAdminRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		supplierPricingRevisions.POST("/:id/approve", h.Admin.Supplier.ApprovePricingRevision)
 		supplierPricingRevisions.POST("/:id/reject", h.Admin.Supplier.RejectPricingRevision)
 	}
+
+	supplierSettlementStatements := admin.Group("/supplier-settlement-statements")
+	{
+		supplierSettlementStatements.GET("", h.Admin.Supplier.ListSettlementStatements)
+		supplierSettlementStatements.POST("/generate", h.Admin.Supplier.GenerateSettlementStatement)
+		supplierSettlementStatements.POST("/:id/confirm", h.Admin.Supplier.ConfirmSettlementStatement)
+		supplierSettlementStatements.POST("/:id/mark-paid", h.Admin.Supplier.MarkSettlementStatementPaid)
+		supplierSettlementStatements.POST("/:id/void", h.Admin.Supplier.VoidSettlementStatement)
+	}
 }
 
 func registerContentModerationRoutes(admin *gin.RouterGroup, h *handler.Handlers) {

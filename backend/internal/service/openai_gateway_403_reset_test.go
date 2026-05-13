@@ -20,7 +20,7 @@ func (s *openAI403CounterResetStub) ResetOpenAI403Count(_ context.Context, accou
 	return nil
 }
 
-func TestOpenAIGatewayServiceRecordUsage_ResetsOpenAI403CounterBeforeZeroUsageReturn(t *testing.T) {
+func TestOpenAIGatewayServiceRecordUsage_ResetsOpenAI403CounterBeforeInputValidationError(t *testing.T) {
 	counter := &openAI403CounterResetStub{}
 	rateLimitSvc := NewRateLimitService(nil, nil, nil, nil, nil)
 	rateLimitSvc.SetOpenAI403CounterCache(counter)
@@ -34,6 +34,6 @@ func TestOpenAIGatewayServiceRecordUsage_ResetsOpenAI403CounterBeforeZeroUsageRe
 		Account: &Account{ID: 777, Platform: PlatformOpenAI},
 	})
 
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.Equal(t, []int64{777}, counter.resetCalls)
 }

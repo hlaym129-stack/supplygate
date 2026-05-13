@@ -452,7 +452,7 @@ func (h *SupplierHandler) ListSettlementStatements(c *gin.Context) {
 		return
 	}
 	response.Success(c, response.PaginatedData{
-		Items:    statements,
+		Items:    dto.SupplierSettlementStatementsFromService(statements),
 		Total:    page.Total,
 		Page:     page.Page,
 		PageSize: page.PageSize,

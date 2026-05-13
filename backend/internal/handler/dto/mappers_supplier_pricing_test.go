@@ -121,3 +121,48 @@ func TestSupplierAccountPricingRevisionFromService(t *testing.T) {
 		t.Fatalf("unexpected input price: %#v", got.Pricing[0].InputPrice)
 	}
 }
+
+func TestSupplierSettlementStatementFromServiceUsesJSONReadySupplier(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	got := SupplierSettlementStatementFromService(&service.SupplierSettlementStatement{
+		ID:            5,
+		SupplierID:    9,
+		PeriodStart:   now,
+		PeriodEnd:     now.Add(30 * 24 * time.Hour),
+		Status:        service.SupplierSettlementStatusPaid,
+		PayableAmount: 70,
+		Supplier: &service.SupplierProfile{
+			ID:           9,
+			UserID:       12,
+			CompanyName:  "Demo Settlement Supplier Ltd.",
+			ContactEmail: "demo.supplier.settlement@supplygate.local",
+			User:         &service.User{ID: 12, Email: "demo.supplier.settlement@supplygate.local"},
+		},
+		Payment: &service.SupplierSettlementPayment{
+			ID:               1,
+			StatementID:      5,
+			SupplierID:       9,
+			PaidAmount:       70,
+			PaidAt:           now,
+			PaymentReference: "DEMO-PAYOUT-202603-001",
+			CreatedAt:        now,
+		},
+	})
+
+	if got == nil {
+		t.Fatal("expected non-nil statement dto")
+	}
+	supplier, ok := got.Supplier.(map[string]any)
+	if !ok {
+		t.Fatalf("expected supplier map dto, got %T", got.Supplier)
+	}
+	if supplier["company_name"] != "Demo Settlement Supplier Ltd." {
+		t.Fatalf("expected snake_case supplier company, got %#v", supplier)
+	}
+	if supplier["contact_email"] != "demo.supplier.settlement@supplygate.local" {
+		t.Fatalf("expected snake_case supplier contact email, got %#v", supplier)
+	}
+	if got.Payment == nil || got.Payment.PaymentReference != "DEMO-PAYOUT-202603-001" {
+		t.Fatalf("unexpected payment dto: %#v", got.Payment)
+	}
+}

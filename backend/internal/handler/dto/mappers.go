@@ -611,6 +611,59 @@ func SupplierAccountPricingRevisionFromService(revision *service.SupplierAccount
 	}
 }
 
+func SupplierSettlementStatementFromService(statement *service.SupplierSettlementStatement) *SupplierSettlementStatement {
+	if statement == nil {
+		return nil
+	}
+	out := &SupplierSettlementStatement{
+		ID:               statement.ID,
+		SupplierID:       statement.SupplierID,
+		PeriodStart:      statement.PeriodStart,
+		PeriodEnd:        statement.PeriodEnd,
+		Status:           statement.Status,
+		UsageAmount:      statement.UsageAmount,
+		AdjustmentAmount: statement.AdjustmentAmount,
+		AdjustmentReason: statement.AdjustmentReason,
+		PayableAmount:    statement.PayableAmount,
+		RequestCount:     statement.RequestCount,
+		InputTokens:      statement.InputTokens,
+		OutputTokens:     statement.OutputTokens,
+		TotalTokens:      statement.TotalTokens,
+		CreatedBy:        statement.CreatedBy,
+		ConfirmedBy:      statement.ConfirmedBy,
+		ConfirmedAt:      statement.ConfirmedAt,
+		PaidBy:           statement.PaidBy,
+		PaidAt:           statement.PaidAt,
+		VoidedBy:         statement.VoidedBy,
+		VoidedAt:         statement.VoidedAt,
+		CreatedAt:        statement.CreatedAt,
+		UpdatedAt:        statement.UpdatedAt,
+		Supplier:         SupplierProfileFromService(statement.Supplier),
+	}
+	if statement.Payment != nil {
+		out.Payment = &SupplierSettlementPayment{
+			ID:               statement.Payment.ID,
+			StatementID:      statement.Payment.StatementID,
+			SupplierID:       statement.Payment.SupplierID,
+			PaidAmount:       statement.Payment.PaidAmount,
+			PaidAt:           statement.Payment.PaidAt,
+			PaymentReference: statement.Payment.PaymentReference,
+			PaymentNote:      statement.Payment.PaymentNote,
+			CreatedBy:        statement.Payment.CreatedBy,
+			CreatedAt:        statement.Payment.CreatedAt,
+		}
+	}
+	return out
+}
+
+func SupplierSettlementStatementsFromService(statements []service.SupplierSettlementStatement) []*SupplierSettlementStatement {
+	out := make([]*SupplierSettlementStatement, 0, len(statements))
+	for i := range statements {
+		out = append(out, SupplierSettlementStatementFromService(&statements[i]))
+	}
+	return out
+}
+
 func RedeemCodeFromService(rc *service.RedeemCode) *RedeemCode {
 	if rc == nil {
 		return nil

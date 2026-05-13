@@ -351,7 +351,7 @@ func (h *SupplierHandler) VoidSettlementStatement(c *gin.Context) {
 
 func paginatedSupplierSettlementStatements(items []service.SupplierSettlementStatement, page *pagination.PaginationResult) response.PaginatedData {
 	return response.PaginatedData{
-		Items:    items,
+		Items:    dto.SupplierSettlementStatementsFromService(items),
 		Total:    page.Total,
 		Page:     page.Page,
 		PageSize: page.PageSize,

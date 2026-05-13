@@ -390,6 +390,45 @@ type SupplierAccountPricingRevision struct {
 	UpdatedAt    time.Time             `json:"updated_at"`
 }
 
+type SupplierSettlementPayment struct {
+	ID               int64     `json:"id"`
+	StatementID      int64     `json:"statement_id"`
+	SupplierID       int64     `json:"supplier_id"`
+	PaidAmount       float64   `json:"paid_amount"`
+	PaidAt           time.Time `json:"paid_at"`
+	PaymentReference string    `json:"payment_reference"`
+	PaymentNote      string    `json:"payment_note"`
+	CreatedBy        int64     `json:"created_by"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
+type SupplierSettlementStatement struct {
+	ID               int64                      `json:"id"`
+	SupplierID       int64                      `json:"supplier_id"`
+	PeriodStart      time.Time                  `json:"period_start"`
+	PeriodEnd        time.Time                  `json:"period_end"`
+	Status           string                     `json:"status"`
+	UsageAmount      float64                    `json:"usage_amount"`
+	AdjustmentAmount float64                    `json:"adjustment_amount"`
+	AdjustmentReason string                     `json:"adjustment_reason"`
+	PayableAmount    float64                    `json:"payable_amount"`
+	RequestCount     int64                      `json:"request_count"`
+	InputTokens      int64                      `json:"input_tokens"`
+	OutputTokens     int64                      `json:"output_tokens"`
+	TotalTokens      int64                      `json:"total_tokens"`
+	CreatedBy        int64                      `json:"created_by"`
+	ConfirmedBy      *int64                     `json:"confirmed_by"`
+	ConfirmedAt      *time.Time                 `json:"confirmed_at"`
+	PaidBy           *int64                     `json:"paid_by"`
+	PaidAt           *time.Time                 `json:"paid_at"`
+	VoidedBy         *int64                     `json:"voided_by"`
+	VoidedAt         *time.Time                 `json:"voided_at"`
+	CreatedAt        time.Time                  `json:"created_at"`
+	UpdatedAt        time.Time                  `json:"updated_at"`
+	Supplier         any                        `json:"supplier,omitempty"`
+	Payment          *SupplierSettlementPayment `json:"payment,omitempty"`
+}
+
 type RedeemCode struct {
 	ID        int64      `json:"id"`
 	Code      string     `json:"code"`

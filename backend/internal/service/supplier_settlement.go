@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"strings"
 	"time"
@@ -153,8 +152,4 @@ func validSupplierSettlementStatus(status string) bool {
 	default:
 		return false
 	}
-}
-
-func isSupplierSettlementNotFound(err error) bool {
-	return errors.Is(err, ErrSupplierSettlementNotFound) || errors.Is(err, sql.ErrNoRows)
 }

@@ -17,7 +17,7 @@
               <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">平台/类型</th>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">审核</th>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">报价</th>
-              <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">调度</th>
+              <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">运行</th>
               <th class="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">操作</th>
             </tr>
           </thead>
@@ -34,6 +34,9 @@
                 <div v-if="account.reject_reason" class="mt-1 text-xs text-red-600">驳回：{{ account.reject_reason }}</div>
                 <div v-if="account.supplier_edit_request_status === 'pending'" class="mt-1 text-xs text-amber-600">
                   退回修改申请审核中
+                </div>
+                <div v-for="info in runtimeInfos(account)" :key="info.label" class="mt-1 text-xs" :class="runtimeInfoClass(info.tone)">
+                  {{ info.label }}
                 </div>
               </td>
               <td class="px-4 py-3 text-sm text-gray-600 dark:text-dark-300">{{ account.platform }} / {{ account.type }}</td>
@@ -56,7 +59,9 @@
                   {{ latestRevision(account.id)?.revision_kind === 'change' ? '改价单' : '初始报价' }}
                 </div>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-600 dark:text-dark-300">{{ account.schedulable ? '可调度' : '不可调度' }}</td>
+              <td class="px-4 py-3 text-sm">
+                <SupplierAccountRuntimeStatus :account="account" />
+              </td>
               <td class="px-4 py-3 text-right text-sm">
                 <button v-if="account.approval_status === 'returned'" class="text-primary-600 hover:text-primary-700" @click="startEdit(account)">编辑</button>
                 <button
@@ -158,10 +163,12 @@ import { onMounted, reactive, ref } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { CreateAccountModal } from '@/components/account'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import SupplierAccountRuntimeStatus from './components/SupplierAccountRuntimeStatus.vue'
 import { supplierAPI } from '@/api'
 import { useAppStore } from '@/stores'
 import type { Account, ChannelModelPricing } from '@/types'
 import type { SupplierAccountPricingRevision } from '@/api/supplier'
+import { getSupplierAccountRuntimeInfos, type SupplierRuntimeTone } from '@/utils/supplierAccountRuntime'
 
 const accounts = ref<Account[]>([])
 const showCreate = ref(false)
@@ -196,6 +203,17 @@ function approvalClass(status?: string): string {
   if (status === 'rejected') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
   if (status === 'returned') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
   return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+}
+
+function runtimeInfos(account: Account) {
+  return getSupplierAccountRuntimeInfos(account)
+}
+
+function runtimeInfoClass(tone: SupplierRuntimeTone): string {
+  if (tone === 'success') return 'text-green-600 dark:text-green-400'
+  if (tone === 'danger') return 'text-red-600 dark:text-red-400'
+  if (tone === 'warning') return 'text-amber-600 dark:text-amber-400'
+  return 'text-gray-500 dark:text-dark-400'
 }
 
 async function loadAccounts() {
